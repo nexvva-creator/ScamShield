@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ScamShield check result</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="popup">
+    <header class="brand">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <div>
+        <h1>ScamShield</h1>
+        <p>Context-menu check</p>
+      </div>
+    </header>
+    <p class="privacy-note">The link was not opened. The selected input was sent only to the local ScamShield app.</p>
+    <p id="feedback" class="feedback" role="status" aria-live="polite">Loading result…</p>
+    <section id="result" class="result" aria-live="polite" hidden></section>
+    <p class="disclaimer">Local rules are guidance, not a guarantee that something is safe.</p>
+  </main>
+  <script src="result.js"></script>
+</body>
+</html>

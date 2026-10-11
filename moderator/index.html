@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>ScamShield private moderator dashboard</title>
+  <link rel="stylesheet" href="/moderator/moderator.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">PRIVATE REVIEW WORKSPACE</p>
+        <h1>ScamShield moderation</h1>
+      </div>
+      <button id="sign-out" class="button secondary" type="button" hidden>Sign out</button>
+    </header>
+
+    <p class="privacy-note">This unlisted dashboard is for authorized reviewers. Reports may contain sensitive details; handle them privately.</p>
+
+    <section id="login-panel" class="card" aria-labelledby="login-title">
+      <h2 id="login-title">Moderator sign-in</h2>
+      <p>Enter the server's configured moderator token. It stays in memory for this page session only.</p>
+      <form id="login-form">
+        <label for="moderator-token">Moderator token</label>
+        <input id="moderator-token" type="password" autocomplete="current-password" required>
+        <button class="button primary" type="submit">Sign in</button>
+      </form>
+    </section>
+
+    <section id="dashboard" hidden aria-labelledby="queue-title">
+      <div class="queue-heading">
+        <div>
+          <p class="eyebrow">PRIVATE AND PENDING</p>
+          <h2 id="queue-title">Report review queue</h2>
+        </div>
+        <button id="refresh-queue" class="button secondary" type="button">Refresh queue</button>
+      </div>
+      <p id="feedback" class="feedback" role="status" aria-live="polite" hidden></p>
+      <div id="queue" class="queue"></div>
+    </section>
+  </main>
+  <script src="/config.js"></script>
+  <script src="/moderator/moderator.js"></script>
+</body>
+</html>

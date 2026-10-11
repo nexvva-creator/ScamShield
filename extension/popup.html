@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ScamShield Link Checker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="popup">
+    <header class="brand">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <div>
+        <h1>ScamShield</h1>
+        <p>Pause, check, protect.</p>
+      </div>
+    </header>
+
+    <p class="privacy-note">Checks use the local ScamShield app. Links are never opened.</p>
+    <label for="check-input">Paste a link or suspicious message</label>
+    <textarea id="check-input" rows="5" maxlength="6000" placeholder="Paste the link or message here. Remove personal details first." required></textarea>
+
+    <div class="button-row">
+      <button id="page-button" class="secondary-button" type="button">Use this page</button>
+      <button id="selection-button" class="secondary-button" type="button">Use selected text</button>
+    </div>
+    <button id="check-button" class="primary-button" type="button">Check with ScamShield</button>
+    <section class="warning-settings" aria-labelledby="warning-title">
+      <h2 id="warning-title">Before-click warnings</h2>
+      <p id="warning-status">Off. Nothing is monitored until you opt in.</p>
+      <button id="warning-toggle" class="secondary-button" type="button">Enable warnings on websites</button>
+    </section>
+    <p id="feedback" class="feedback" role="status" aria-live="polite" hidden></p>
+
+    <section id="result" class="result" aria-live="polite" hidden></section>
+    <p class="disclaimer">Local rules are guidance, not a guarantee that something is safe.</p>
+  </main>
+  <script src="common.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "ScamShield Link Checker",
+  "version": "1.0.0",
+  "description": "Check a link or selected text with ScamShield's local analysis rules.",
+  "permissions": [
+    "activeTab",
+    "contextMenus",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:8000/*"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Check with ScamShield",
+    "default_popup": "popup.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["warning.css"],
+      "matches": ["http://*/*", "https://*/*"]
+    }
+  ]
+}
