@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
+import os
 import re
 from datetime import datetime, timezone
 from ipaddress import ip_address
+from urllib import request as urllib_request
 from urllib.parse import urlsplit
 
 
@@ -243,7 +246,8 @@ MESSAGE_RULES = (
     (("click here", "verify your account", "login to confirm", "secure your account now", "account will be suspended", "account has been suspended", "suspicious sign-in", "unusual sign-in", "এখানে ক্লিক", "অ্যাকাউন্ট যাচাই", "লিংকে ক্লিক", "লগইন করে নিশ্চিত", "haz clic aquí", "verifica tu cuenta", "cliquez ici", "vérifiez votre compte", "यहाँ क्लिक करें", "खाते की पुष्टि करें", "اضغط هنا", "تحقق من حسابك"), "pushes_link_action", 10, "The message pushes you to click a link or verify an account."),
     (("guaranteed profit", "double your money", "risk-free investment", "নিশ্চিত লাভ", "টাকা দ্বিগুণ", "নিশ্চিত মুনাফা", "ঝুঁকি ছাড়া লাভ", "ganancias garantizadas", "duplica tu dinero", "sans risque", "profits garantis", "गारंटीशुदा मुनाफ़ा", "पैसे दोगुने", "ربح مضمون", "ضاعف أموالك"), "unrealistic_return", 18, "The message promises unusually certain or high returns."),
     (("you have been selected", "you were selected for", "congratulations you got the job", "remote job offer", "work from home job", "নিয়োগ নিশ্চিত", "চাকরি পেয়েছেন", "চাকরিতে নির্বাচিত", "বাড়িতে বসে আয়", "has sido seleccionado", "oferta de empleo", "vous avez été sélectionné", "offre d'emploi", "नौकरी मिल गई", "नौकरी के लिए चुने गए", "تم اختيارك للوظيفة", "وظيفة مضمونة"), "job_offer", 12, "The message promises a job or easy income without enough verifiable detail."),
-    (("send your national id", "send your nid", "জাতীয় পরিচয়পত্র", "এনআইডি পাঠান", "জন্ম নিবন্ধন পাঠান", "envía tu documento de identidad", "envoyez votre pièce d'identité", "पहचान पत्र भेजें", "आधार कार्ड भेजें", "أرسل بطاقة هويتك", "رقم الهوية"), "requests_identity_data", 12, "The message asks for sensitive identity information; verify the request independently."),
+    (("recover your lost crypto", "recover your wallet", "fund recovery", "wallet recovery", "lost funds", "recovery service", "we can recover", "can recover your money", "can recover your funds", "সুদের টাকা ফেরত", "হারা অর্থ ফেরত", "ক্রিপ্টো রিকভারি", "recupera tu dinero", "recuperar tus fondos", "service de récupération", "récupérer votre argent", "वॉलेट रिकवरी", "फंड रिकवरी", "استرداد أموالك", "استعادة محفظتك"), "recovery_scam", 18, "The message offers to recover lost money or crypto and asks for a fee to proceed."),
+    (("send your national id", "send your nid", "bank details", "bank account details", "routing number", "account number", "payment details", "verify your bank account", "confirm your bank details", "জাতীয় পরিচয়পত্র", "এনআইডি পাঠান", "জন্ম নিবন্ধন পাঠান", "ব্যাংক বিবরণ", "বিস্তারিত যোগ করুন", "datos bancarios", "détails bancaires", "बैंक विवरण", "खाता संख्या", "معلومات البنك", "رقم الحساب"), "requests_identity_data", 12, "The message asks for sensitive identity information; verify the request independently."),
 )
 
 
@@ -264,38 +268,102 @@ def _translate(text: str, locale: str) -> str:
     return RESULT_TRANSLATIONS.get(locale, {}).get(text, text)
 
 
+def _threat_provider_config() -> tuple[str, str | None, int]:
+    endpoint = os.environ.get("SCAMSHIELD_THREAT_API_URL", "").strip()
+    api_key = os.environ.get("SCAMSHIELD_THREAT_API_KEY", "").strip() or None
+    timeout = 3
+    try:
+        timeout_value = os.environ.get("SCAMSHIELD_THREAT_TIMEOUT_SECONDS", "3").strip()
+        timeout = max(1, int(timeout_value))
+    except ValueError:
+        timeout = 3
+    return endpoint, api_key, timeout
+
+
+def _threat_check_url(candidate: str) -> tuple[bool, str | None, dict[str, object] | None]:
+    endpoint, api_key, timeout = _threat_provider_config()
+    if not endpoint:
+        return False, None, None
+    payload = json.dumps({"url": candidate}).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    request = urllib_request.Request(endpoint, data=payload, headers=headers, method="POST")
+    try:
+        with urllib_request.urlopen(request, timeout=timeout) as response:
+            body = response.read().decode("utf-8")
+    except Exception:
+        return False, None, None
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError:
+        return False, None, None
+    if not isinstance(data, dict):
+        return False, None, None
+    status = str(data.get("status", "")).lower()
+    malicious = bool(data.get("malicious"))
+    if not malicious and status in {"malicious", "phishing", "scam", "blocked"}:
+        malicious = True
+    matches = data.get("matches")
+    if not malicious and isinstance(matches, list):
+        for match in matches:
+            if not isinstance(match, dict):
+                continue
+            classification = str(match.get("classification", "")).lower()
+            if classification in {"malicious", "phishing", "scam", "blocked"}:
+                malicious = True
+                break
+    provider = str(data.get("provider") or "threat_provider")
+    return malicious, provider, data
+
+
 def _result(signals: list[dict[str, str]], score: int, checked: list[str], locale: str = "en") -> dict[str, object]:
     score = min(score, 100)
     if score >= 65:
         label = "high_risk"
         title = "High risk indicators"
         advice = ["Do not open the link or send money.", "Do not share passwords, PINs, or verification codes.", "Contact the organization using a number or website you already trust."]
+        confidence = "high"
     elif score >= 30:
         label = "caution"
         title = "Pause and verify"
         advice = ["Do not use contact details or links in the message.", "Check the request through the organization's official app or website.", "Never share a PIN, password, or one-time code."]
+        confidence = "medium"
     elif checked:
         label = "unknown"
         title = "Unable to determine"
         advice = ["No strong local-rule signal was found, but no live threat-list check is configured.", "Verify the sender independently before sharing information or paying."]
+        confidence = "low"
     else:
         label = "unknown"
         title = "Unable to determine"
         advice = ["No live threat-list check is configured.", "Verify the sender independently before sharing information or paying."]
+        confidence = "low"
+    provider_name = "live_threat_provider" if _threat_provider_config()[0] else None
+    coverage = [
+        {"check": "local_rules", "status": "completed", "provider": "ScamShield"},
+        {"check": "threat_intelligence", "status": "completed" if provider_name else "not_configured", "provider": provider_name},
+    ]
+    evidence_with_translation = [{**item, "text": _translate(item["text"], locale)} for item in signals]
+    summary_fragments = [
+        item["text"]
+        for item in evidence_with_translation[:2]
+        if item["text"].strip()
+    ]
+    summary = " ; ".join(summary_fragments) if summary_fragments else _translate("No strong signal was found by the local rules.", locale)
     return {
         "risk_label": label,
         "title": _translate(title, locale),
         "score": score,
         "decision_reason": [_translate(item["text"], locale) for item in signals] or [_translate("No strong signal was found by the local rules.", locale)],
-        "evidence": [{**item, "text": _translate(item["text"], locale)} for item in signals],
-        "coverage": [
-            {"check": "local_rules", "status": "completed", "provider": "ScamShield"},
-            {"check": "threat_intelligence", "status": "not_configured", "provider": None},
-        ],
+        "summary": summary,
+        "confidence": confidence,
+        "evidence": evidence_with_translation,
+        "coverage": coverage,
         "recommended_actions": [_translate(item, locale) for item in advice],
         "generated_at": _now(),
         "ruleset_version": RULESET_VERSION,
-        "disclaimer": _translate("This is decision-support guidance, not a guarantee. No live threat-intelligence provider is configured.", locale),
+        "disclaimer": _translate("This is decision-support guidance, not a guarantee. No live threat-intelligence provider is configured.", locale) if not provider_name else _translate("This is decision-support guidance, not a guarantee. A configured live threat-intelligence provider is being used for URL checks.", locale),
         "locale": locale,
     }
 
@@ -366,9 +434,18 @@ def analyze_url(value: str, locale: str = "en") -> dict[str, object]:
     candidate, host = _validate_url(value, locale)
     parsed = urlsplit(candidate)
     signals, score = _url_signals(host, parsed.scheme.lower(), parsed.port)
+    malicious, provider_name, _ = _threat_check_url(candidate)
+    if malicious:
+        signals.append(_evidence("known_malicious", f"The configured threat feed flags this URL as suspicious: {provider_name or 'live threat provider'}.", "high"))
+        score += 80
+    elif provider_name:
+        signals.append(_evidence("no_known_threat", "The configured threat feed did not flag this URL as malicious.", "weak"))
     result = _result(signals, score, ["local_rules"], locale)
     result["input_type"] = "url"
     result["normalized_host"] = host
+    if provider_name:
+        result["threat_provider"] = provider_name
+        result["coverage"][1]["provider"] = provider_name
     return result
 
 
@@ -407,8 +484,23 @@ def analyze_message(value: str, locale: str = "en") -> dict[str, object]:
                 score += url_score
     if links:
         signals.append(_evidence("contains_link", "The message contains a web link; check its destination independently before opening it.", "weak"))
+    threat_links: list[str] = []
+    provider_name = None
+    for link in links:
+        candidate = "https://" + link if not link.startswith("http") else link
+        malicious, provider_name, _ = _threat_check_url(candidate)
+        if malicious:
+            threat_links.append(link)
+            signals.append(_evidence("known_malicious", f"The configured threat feed flags this link as suspicious: {provider_name or 'live threat provider'}.", "high"))
+            score += 80
+            break
     result = _result(signals, score, ["local_rules"], locale)
     result["input_type"] = "message"
     result["detected_links"] = links
     result["privacy_note"] = _translate("Your message is analyzed in memory and is not saved or sent to an external service.", locale)
+    if provider_name:
+        result["threat_provider"] = provider_name
+        result["coverage"][1]["provider"] = provider_name
+    if threat_links:
+        result["flagged_links"] = threat_links
     return result

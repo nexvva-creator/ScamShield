@@ -3,6 +3,7 @@ import json
 import tempfile
 import threading
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import server
@@ -45,9 +46,14 @@ class ApiTests(unittest.TestCase):
         return response.status, result
 
     def test_health_and_homepage(self):
-        status, health = self.request("GET", "/api/health")
-        self.assertEqual(status, 200)
-        self.assertEqual(health["status"], "ok")
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=2)
+        connection.request("GET", "/api/health")
+        response = connection.getresponse()
+        self.assertEqual(response.status, 200)
+        self.assertEqual(json.loads(response.read())["status"], "ok")
+        self.assertTrue(response.getheader("X-Request-ID"))
+        connection.close()
+
         status, page = self.request("GET", "/")
         self.assertEqual(status, 200)
         self.assertIn(b"Private by default", page)
@@ -204,6 +210,52 @@ class ApiTests(unittest.TestCase):
         status, lookup = self.request("POST", "/api/reports/status", {"token": created["reference"]})
         self.assertEqual(status, 200)
         self.assertEqual(lookup["status"], "verified")
+
+    def test_admin_login_accepts_bearer_and_fallback_headers(self):
+        status, response = self.request(
+            "GET",
+            "/api/admin/reports",
+            headers={"Authorization": "Bearer test-moderator-token", "Origin": "https://scamshield.example"},
+        )
+        self.assertEqual(status, 200)
+        self.assertIsInstance(response["reports"], list)
+
+        status, response = self.request(
+            "GET",
+            "/api/admin/reports",
+            headers={"X-ScamShield-Admin-Token": "test-moderator-token", "Origin": "https://scamshield.example"},
+        )
+        self.assertEqual(status, 200)
+
+        status, response = self.request(
+            "GET",
+            "/api/admin/reports",
+            headers={"Authorization": "Bearer test-moderator-token", "Origin": "https://untrusted.example"},
+        )
+        self.assertEqual(status, 403)
+
+    def test_retention_policy_prunes_old_reports(self):
+        database = Database(Path(self.temp_dir.name) / "retention.sqlite3")
+        old_id = "old-report-id"
+        fresh_id = "fresh-report-id"
+        old_timestamp = (datetime.now(timezone.utc) - timedelta(days=400)).isoformat(timespec="seconds")
+        fresh_timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        with database._connect() as connection:
+            connection.execute(
+                "INSERT INTO reports (id, reference, category, target, summary, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)",
+                (old_id, "old-ref", "job", "example.org", "Old report summary.", old_timestamp, old_timestamp),
+            )
+            connection.execute(
+                "INSERT INTO reports (id, reference, category, target, summary, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)",
+                (fresh_id, "fresh-ref", "job", "example.org", "Fresh report summary.", fresh_timestamp, fresh_timestamp),
+            )
+
+        database.retention_days = 365
+        deleted = database.prune_expired_reports()
+        self.assertEqual(deleted, 1)
+        self.assertIsNone(database.get_report_by_token("old-ref"))
+        self.assertIsNotNone(database.get_report_by_token("fresh-ref"))
+        database.close()
 
     def test_admin_unavailable_without_configured_token(self):
         server.ADMIN_TOKEN = ""

@@ -1,4 +1,6 @@
+import json
 import unittest
+from unittest.mock import patch
 
 from scamshield.analysis import analyze_message, analyze_url
 
@@ -20,6 +22,25 @@ class UrlAnalysisTests(unittest.TestCase):
         self.assertIn("unencrypted_http", evidence_types)
         self.assertIn("uncommon_domain_suffix", evidence_types)
         self.assertIn("unusual_port", evidence_types)
+
+    @patch.dict("os.environ", {"SCAMSHIELD_THREAT_API_URL": "https://threat.example/check"}, clear=False)
+    @patch("scamshield.analysis.urllib_request.urlopen")
+    def test_live_threat_feed_marks_known_malicious_link(self, mock_urlopen):
+        mock_response = unittest.mock.MagicMock()
+        mock_response.__enter__.return_value = mock_response
+        mock_response.read.return_value = json.dumps({
+            "provider": "Demo Threat Feed",
+            "status": "malicious",
+            "malicious": True,
+        }).encode("utf-8")
+        mock_urlopen.return_value = mock_response
+
+        result = analyze_url("https://malicious.example/login")
+
+        self.assertEqual(result["risk_label"], "high_risk")
+        self.assertEqual(result["coverage"][1]["status"], "completed")
+        self.assertIn("known_malicious", {item["type"] for item in result["evidence"]})
+        self.assertEqual(result["threat_provider"], "Demo Threat Feed")
 
     def test_local_or_reserved_addresses_are_rejected(self):
         for url in ("http://127.0.0.1/admin", "http://localhost/", "http://[::1]/"):
@@ -62,7 +83,7 @@ class MessageAnalysisTests(unittest.TestCase):
             (
                 "recovery scam",
                 "We can recover your lost crypto with guaranteed profit. Pay an upfront fee to begin.",
-                {"unrealistic_return", "requests_upfront_payment"},
+                {"recovery_scam", "unrealistic_return", "requests_upfront_payment"},
                 "caution",
             ),
         )
@@ -113,6 +134,8 @@ class MessageAnalysisTests(unittest.TestCase):
         result = analyze_message("Your monthly statement is ready.")
         self.assertEqual(result["risk_label"], "unknown")
         self.assertIn("provider is configured", result["disclaimer"])
+        self.assertIn("summary", result)
+        self.assertIn(result["confidence"], {"low", "medium", "high"})
 
     def test_message_links_are_extracted_but_not_opened(self):
         result = analyze_message("Please review https://bit.ly/example before paying")

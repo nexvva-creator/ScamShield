@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import secrets
@@ -35,6 +36,10 @@ TRUST_PROXY = os.environ.get("SCAMSHIELD_TRUST_PROXY", "").lower() == "true"
 MAX_BODY_BYTES = 16_000
 RATE_LIMIT = 20
 RATE_WINDOW_SECONDS = 60
+LOG_LEVEL = os.environ.get("SCAMSHIELD_LOG_LEVEL", "INFO").upper()
+LOGGER = logging.getLogger("scamshield")
+if not LOGGER.handlers:
+    logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO), format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
 
 class ApiError(Exception):
@@ -49,11 +54,18 @@ class RequestHandler(BaseHTTPRequestHandler):
     sys_version = ""
     requests_by_ip: dict[str, deque[float]] = defaultdict(deque)
 
+    def setup(self) -> None:
+        super().setup()
+        self.request_id = secrets.token_urlsafe(8)
+
     def log_message(self, format: str, *args: object) -> None:
-        # Request paths can contain report tokens or submitted evidence.
-        return
+        path = urlsplit(self.path).path or self.path
+        status = args[1] if len(args) >= 2 else "-"
+        size = args[2] if len(args) >= 3 else "-"
+        LOGGER.info("request_id=%s method=%s path=%s status=%s bytes=%s", self.request_id, self.command, path, status, size)
 
     def end_headers(self) -> None:
+        self.send_header("X-Request-ID", self.request_id)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
@@ -239,9 +251,19 @@ class RequestHandler(BaseHTTPRequestHandler):
         if not ADMIN_TOKEN:
             self._send_json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "Moderation is not configured. Set SCAMSHIELD_ADMIN_TOKEN before enabling admin access."})
             return False
-        supplied = self.headers.get("Authorization", "")
-        expected = f"Bearer {ADMIN_TOKEN}"
-        if not secrets.compare_digest(supplied, expected):
+
+        origin = self.headers.get("Origin")
+        if origin and origin not in ALLOWED_ORIGINS:
+            self._send_json(HTTPStatus.FORBIDDEN, {"error": "Origin is not allowed."})
+            return False
+
+        supplied = self.headers.get("Authorization", "").strip()
+        if not supplied:
+            supplied = self.headers.get("X-ScamShield-Admin-Token", "").strip()
+        if supplied.lower().startswith("bearer "):
+            supplied = supplied[7:].strip()
+
+        if not secrets.compare_digest(supplied, ADMIN_TOKEN):
             self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "Moderator authorization is required."})
             return False
         return True
@@ -311,11 +333,14 @@ def main() -> None:
     if os.environ.get("SCAMSHIELD_DATABASE_REQUIRED", "").lower() == "true" and not database_url:
         raise RuntimeError("DATABASE_URL must be configured for this deployment.")
     database = Database(database_url or DB_PATH)
+    pruned = database.prune_expired_reports()
     server = ScamShieldServer((host, port), RequestHandler, database)
+    LOGGER.info("starting host=%s port=%s db_backend=%s admin_token_configured=%s retention_days=%s pruned_reports=%s", host, port, "postgres" if database_url else "sqlite", bool(ADMIN_TOKEN), database.retention_days, pruned)
     print(f"ScamShield listening at http://{host}:{port} (Ctrl+C to stop)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
+        LOGGER.info("shutdown requested")
         print("\nStopping ScamShield.")
     finally:
         server.server_close()

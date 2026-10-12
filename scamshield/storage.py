@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -19,6 +20,12 @@ class Database:
         database_value = str(database)
         self.pool: ConnectionPool | None = None
         self.path: Path | None = None
+        self.retention_days = 365
+        try:
+            raw_days = os.environ.get("SCAMSHIELD_REPORT_RETENTION_DAYS", "365").strip()
+            self.retention_days = max(1, int(raw_days))
+        except ValueError:
+            self.retention_days = 365
 
         if database_value.startswith(("postgres://", "postgresql://")):
             self.pool = ConnectionPool(
@@ -139,6 +146,16 @@ class Database:
                 (report_id, status, reason, now),
             )
             return True
+
+    def prune_expired_reports(self, retention_days: int | None = None) -> int:
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days or self.retention_days)).isoformat(timespec="seconds")
+        with self._connect() as connection:
+            cursor = self._execute(
+                connection,
+                "DELETE FROM reports WHERE created_at <= ?",
+                (cutoff,),
+            )
+            return cursor.rowcount
 
     def close(self) -> None:
         if self.pool is not None:
