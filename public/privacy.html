@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Pre-launch privacy notice draft for ClearBeacon.">
+  <title>Privacy notice draft — ClearBeacon</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="policy-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="ClearBeacon home">
+      <span class="brand-mark" aria-hidden="true">C</span>
+      <span>Clear<span class="brand-accent">Beacon</span></span>
+    </a>
+  </header>
+  <main id="main" class="policy-main">
+    <p class="draft-notice" role="status"><strong>PRE-LAUNCH DRAFT — NOT A FINAL PRIVACY NOTICE.</strong> Do not launch this service publicly until the operator's jurisdiction/entity, privacy contact, hosting and data-region configuration, legal, and retention details below are confirmed and this notice is reviewed for the places the service will operate.</p>
+    <h1>Privacy notice</h1>
+    <p class="policy-meta">Draft prepared 16 October 2026 · English only</p>
+    <p>This draft describes the current ClearBeacon prototype based on its code and configuration. Actual hosting, access, and legal responsibilities must be confirmed before launch. ClearBeacon is an independent educational project, not a government service or security guarantee. ClearBeacon is a provisional name pending legal clearance.</p>
+
+    <h2>Who operates this service</h2>
+    <p>Project operator: <strong>Fatima Abid</strong>, operating as an individual in Pakistan. The operator confirmed this is their full legal name and that no registered organization is currently operating the project.</p>
+    <p>Privacy contact: <strong>Not set up.</strong> A dedicated, monitored public contact method must be provided before launch. Do not submit a privacy request to this prototype expecting a response.</p>
+    <p>The operator's stated goal is global availability, but specific launch countries and legal service areas have not been decided. The current help directory lists resources for the United States, United Kingdom, Australia, Spain, Mexico, Pakistan, United Arab Emirates, Canada, India, France, and Bangladesh. Those reference links do not establish service availability or legal coverage in those or other countries.</p>
+
+    <h2>Information processed</h2>
+    <ul>
+      <li><strong>Link and message checks:</strong> the text you submit is sent to this service for local rule analysis. The application does not save the submitted URL or message, visit the URL, or send it to a threat-intelligence provider. Do not paste secrets, personal data, or private links.</li>
+      <li><strong>Optional image helper:</strong> supported browsers process images on your device for QR/text extraction; the image is not uploaded. Availability and recognition quality vary.</li>
+      <li><strong>Reports:</strong> the database stores the selected category, optional target, incident summary, optional evidence notes, contact channel preference, incident date, language, report status, a private reference, and related review records such as appeals, clarification messages, reviewer notes, and moderation history. The form does not request an email address or phone number.</li>
+      <li><strong>Check feedback:</strong> if you send feedback, the database stores its explanation, check type, language, result label, and a SHA-256 digest of the checked input, not the original checked text. A digest can sometimes be matched against guesses and should not be treated as anonymous.</li>
+      <li><strong>Browser storage:</strong> your selected language and up to ten recent result summaries are stored in this browser's local storage. Original checked URLs and messages are not stored in that history. Clear browser storage to remove it.</li>
+      <li><strong>Technical data:</strong> the application suppresses its own HTTP request-path logs because paths can contain private report references. To rate-limit repeated requests, it keeps client IP addresses and request timestamps in process memory; the current limiter can retain an address entry until the service restarts. The deployment environment may also produce network, security, or hosting logs; this prototype does not establish what an eventual hosting provider will collect or retain.</li>
+    </ul>
+
+    <h2>Why information is used and who can see it</h2>
+    <p>Checks are used to return decision-support guidance. Reports and optional feedback are used for private review and service improvement. Authorized reviewers can access report details and moderation records as needed for that work. No report is automatically made public. Reviewer session tokens are kept in server memory and expire after 30 minutes. The application does not currently configure advertising, analytics, email, or an external URL-checking provider.</p>
+    <p>If you follow a help-directory link, you leave this service and the linked organization applies its own privacy practices. The current prototype does not otherwise disclose check inputs to those organizations.</p>
+
+    <h2>Retention and deletion</h2>
+    <p>Reports and check feedback are deleted from the live database after 365 days by default. The operator can configure a different period from 1 to 3,650 days. Reporters can also request deletion of a report and its linked review records using the private report reference. Keep that reference confidential.</p>
+    <p>Deleting a record from the live database does not remove it from backups already made. The prototype does not yet define a backup expiry schedule or propagate individual deletion requests to backups. Those arrangements must be documented and implemented before launch.</p>
+
+    <h2>Security and service status</h2>
+    <p>This prototype uses a local SQLite database without application-level encryption. It is intended for local demonstration and must not be directly exposed to the public internet. The operator intends to use Vercel and has selected Supabase Postgres as the planned persistent database, but neither service has been configured for this application. The current server and database are not ready for serverless production hosting; the Vercel function region, Supabase project/data region, provider processing, and backup arrangements remain undecided. Production HTTPS, database and backup protections, access controls, monitoring, and incident handling have not yet been finalized. Avoid submitting sensitive information.</p>
+
+    <h2>Your choices and requests</h2>
+    <p>You can avoid submitting optional reports or feedback, clear local browser storage, and use a private report reference to export or delete your report. The privacy contact and process for other data-rights requests are not yet established. Applicable rights and response procedures depend on the operator and the laws that apply; those details require qualified review before launch.</p>
+
+    <h2>Children and changes</h2>
+    <p>The operator intends a general audience that may include minors. Age-related safeguards have not been determined. The operator must design and review suitable child-protection and privacy safeguards before launch. The final notice should show its effective date and explain how material changes will be communicated.</p>
+
+    <p class="policy-back"><a class="secondary-button" href="/">Back to ClearBeacon</a></p>
+  </main>
+</body>
+</html>

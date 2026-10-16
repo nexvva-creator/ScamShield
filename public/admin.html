@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f6">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Reviewer console — ClearBeacon</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/admin.js" defer></script>
+</head>
+<body class="admin-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header admin-header">
+    <a class="brand" href="/" aria-label="ClearBeacon home">
+      <span class="brand-mark" aria-hidden="true">C</span>
+      <span>Clear<span class="brand-accent">Beacon</span></span>
+    </a>
+    <span class="admin-badge">Restricted reviewer area</span>
+  </header>
+  <main id="main" class="admin-main">
+    <section class="admin-login-card" aria-labelledby="admin-title">
+      <p class="eyebrow">PRIVATE MODERATION</p>
+      <h1 id="admin-title">Reviewer console</h1>
+      <p>Sign in with your named reviewer account. Sessions expire after 30 minutes; administrator accounts can assign reviewers and use bulk actions.</p>
+      <form id="admin-login">
+        <label for="admin-username">Username</label>
+        <input id="admin-username" autocomplete="username" required>
+        <label for="admin-password">Password</label>
+        <input id="admin-password" type="password" autocomplete="current-password" required>
+        <label for="admin-totp">Authenticator code <span>(only if MFA is configured)</span></label>
+        <input id="admin-totp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6">
+        <button class="primary-button" type="submit">Sign in</button>
+      </form>
+      <div id="login-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+    </section>
+
+    <section id="dashboard" class="admin-dashboard" aria-labelledby="dashboard-title" hidden>
+      <div class="admin-title-row">
+        <div><p class="eyebrow">REVIEW WORKSPACE</p><h1 id="dashboard-title">Moderation dashboard</h1></div>
+        <div class="admin-toolbar"><button id="refresh-dashboard" class="secondary-button" type="button">Refresh</button><button id="admin-logout" class="secondary-button" type="button">Sign out</button></div>
+      </div>
+      <div id="dashboard-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+      <section class="admin-metrics" aria-label="Report totals">
+        <article><span>Pending reports</span><strong id="count-pending">0</strong></article>
+        <article><span>Verified</span><strong id="count-verified">0</strong></article>
+        <article><span>Rejected</span><strong id="count-rejected">0</strong></article>
+        <article><span>Escalated</span><strong id="count-escalated">0</strong></article>
+        <article><span>Pending appeals</span><strong id="count-appeals">0</strong></article>
+      </section>
+      <section class="admin-panel" aria-labelledby="reports-title">
+        <div class="admin-panel-heading"><div><p class="eyebrow">PRIVATE SUBMISSIONS</p><h2 id="reports-title">Reports</h2></div></div>
+        <div class="admin-filters">
+          <label for="report-filter">Status<select id="report-filter"><option value="pending">Pending</option><option value="all">All statuses</option><option value="verified">Verified</option><option value="rejected">Rejected</option><option value="escalated">Escalated</option></select></label>
+          <label for="assigned-filter">Reviewer queue<select id="assigned-filter"><option value="">All reviewers</option><option value="me">Assigned to me</option><option value="__unassigned__">Unassigned</option></select></label>
+          <label for="category-filter">Category<select id="category-filter"><option value="">All categories</option><option value="fake_shop">Fake shop</option><option value="job">Job</option><option value="payment">Payment</option><option value="impersonation">Impersonation</option><option value="account">Account</option><option value="other">Other</option></select></label>
+          <label for="locale-filter">Language<select id="locale-filter"><option value="">All languages</option><option value="en">English</option><option value="bn">Bangla</option><option value="es">Spanish</option><option value="fr">French</option><option value="hi">Hindi</option><option value="ar">Arabic</option></select></label>
+          <label for="report-search">Search reports<input id="report-search" type="search" placeholder="Search category, target, or details"></label>
+        </div>
+        <div class="admin-bulk" data-admin-only>
+          <label for="bulk-status">Selected reports action</label>
+          <select id="bulk-status"><option value="verified">Verify selected</option><option value="rejected">Reject selected</option><option value="escalated">Escalate selected</option></select>
+          <label for="bulk-reason">Reason for all selected actions</label>
+          <input id="bulk-reason" maxlength="1000" placeholder="Required reason for all selected actions">
+          <button id="bulk-submit" class="secondary-button" type="button">Apply to selected reports</button>
+        </div>
+        <div id="report-list" class="admin-list" aria-live="polite"></div>
+        <div class="admin-pagination"><button id="reports-previous" class="secondary-button" type="button">Previous page</button><span id="reports-page">Page 1</span><button id="reports-next" class="secondary-button" type="button">Next page</button></div>
+      </section>
+      <section class="admin-panel" aria-labelledby="appeals-title">
+        <div class="admin-panel-heading"><div><p class="eyebrow">REQUESTED REASSESSMENTS</p><h2 id="appeals-title">Appeals awaiting review</h2></div></div>
+        <div id="appeal-list" class="admin-list" aria-live="polite"></div>
+      </section>
+      <section class="admin-panel" aria-labelledby="audit-title">
+        <div class="admin-panel-heading"><div><p class="eyebrow">REVIEW TRACEABILITY</p><h2 id="audit-title">Recent action history</h2></div><button id="audit-export" class="secondary-button" type="button">Download protected CSV</button></div>
+        <div id="audit-list" class="admin-list" aria-live="polite"></div>
+      </section>
+      <section class="admin-panel" aria-labelledby="feedback-title">
+        <div class="admin-panel-heading"><div><p class="eyebrow">USER CORRECTIONS</p><h2 id="feedback-title">Check feedback</h2></div></div>
+        <div id="feedback-list" class="admin-list" aria-live="polite"></div>
+      </section>
+      <section class="admin-panel" aria-labelledby="operations-title">
+        <div class="admin-panel-heading"><div><p class="eyebrow">SERVICE STATUS</p><h2 id="operations-title">Operations and alerts</h2></div></div>
+        <div id="operations-summary" class="admin-list" aria-live="polite"></div>
+      </section>
+      <section class="admin-panel" data-admin-only aria-labelledby="feeds-title">
+        <div class="admin-panel-heading"><div><p class="eyebrow">LOCAL THREAT DATA</p><h2 id="feeds-title">Threat-feed versions</h2></div></div>
+        <p>Paste a JSON feed to stage it. ClearBeacon never fetches external feed URLs. Feeds must be fresh, valid, and no larger than 1.5 MB.</p>
+        <label for="feed-json">Feed JSON</label>
+        <textarea id="feed-json" rows="7" maxlength="1500000" placeholder='{"provider":"example","updated_at":"2026-10-12T12:00:00Z","domains":["example.invalid"]}'></textarea>
+        <button id="feed-stage" class="secondary-button" type="button">Validate and stage</button>
+        <button id="feed-rollback" class="secondary-button" type="button">Roll back to previous active feed</button>
+        <div id="feed-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+        <div id="feed-versions" class="admin-list" aria-live="polite"></div>
+      </section>
+      <section class="admin-panel" data-admin-only aria-labelledby="sessions-title">
+        <div class="admin-panel-heading"><div><p class="eyebrow">ACCESS CONTROL</p><h2 id="sessions-title">Reviewer sessions</h2></div></div>
+        <label for="session-user">Username to revoke</label>
+        <input id="session-user" maxlength="120" autocomplete="off">
+        <button id="session-revoke" class="secondary-button" type="button">Revoke sessions</button>
+        <div id="session-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+        <div id="session-list" class="admin-list" aria-live="polite"></div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,37 @@
+type,input,locale,expected
+url,http://1.1.1.1:8080/login%2fverify,en,scam
+url,https://www.example.org/,en,benign
+url,http://1.1.1.1:8080/login%2fverify,es,scam
+url,https://www.example.org/,es,benign
+url,http://1.1.1.1:8080/login%2fverify,fr,scam
+url,https://www.example.org/,fr,benign
+url,http://1.1.1.1:8080/login%2fverify,hi,scam
+url,https://www.example.org/,hi,benign
+url,http://1.1.1.1:8080/login%2fverify,ar,scam
+url,https://www.example.org/,ar,benign
+url,http://1.1.1.1:8080/login%2fverify,bn,scam
+url,https://www.example.org/,bn,benign
+message,"Your account will be blocked immediately. Send your one time password and pay a fee. Click here.",en,scam
+message,"Your account will be blocked immediately. Send your verification code and pay a registration fee. Click here.",en,scam
+message,"I received a sign-in alert and checked it in the official app without sharing any codes.",en,benign
+message,"The bank app shows my balance and I did not follow any message links.",en,benign
+message,"Urgente: envía tu código OTP ahora. Paga una tarifa y haz clic aquí para verificar tu cuenta.",es,scam
+message,"Tu cuenta será bloqueada inmediatamente. Envía tu contraseña y paga una tarifa de registro. Haz clic aquí.",es,scam
+message,"Recibí una alerta del banco y la comprobé en la aplicación oficial sin compartir códigos.",es,benign
+message,"La aplicación oficial muestra mi saldo y no abrí enlaces de ningún mensaje.",es,benign
+message,"Urgent : envoyez votre code de vérification. Payez des frais d'inscription et cliquez ici.",fr,scam
+message,"Votre compte sera bloqué immédiatement. Envoyez votre mot de passe et payez des frais. Cliquez ici.",fr,scam
+message,"J'ai vérifié l'alerte bancaire dans l'application officielle sans communiquer de code.",fr,benign
+message,"J'ai consulté mon compte sur le site officiel sans suivre de lien reçu par message.",fr,benign
+message,"तुरंत करें: अपना ओटीपी भेजें। पंजीकरण शुल्क दें और यहाँ क्लिक करें।",hi,scam
+message,"आपका खाता बंद होगा। अभी पासवर्ड भेजें और अग्रिम शुल्क दें। यहाँ क्लिक करें।",hi,scam
+message,"मुझे बैंक का अलर्ट मिला और मैंने कोई कोड साझा किए बिना आधिकारिक ऐप में जाँच की।",hi,benign
+message,"मैंने आधिकारिक साइट पर अपना बैलेंस देखा और संदेश का कोई लिंक नहीं खोला।",hi,benign
+message,"عاجل: أرسل رمز التحقق الآن. ادفع رسوم التسجيل واضغط هنا.",ar,scam
+message,"سيتم إيقاف الحساب فوراً. أرسل كلمة المرور وادفع الرسوم. اضغط هنا.",ar,scam
+message,"تحققت من تنبيه البنك عبر التطبيق الرسمي ولم أشارك أي رمز.",ar,benign
+message,"راجعت حسابي عبر الموقع الرسمي ولم أفتح أي رابط من رسالة.",ar,benign
+message,"জরুরি: এখনই ওটিপি পাঠান। আগাম ফি দিন এবং এখানে ক্লিক করুন।",bn,scam
+message,"অ্যাকাউন্ট বন্ধ হবে। পাসওয়ার্ড পাঠান এবং রেজিস্ট্রেশন ফি জমা দিন। এখানে ক্লিক করুন।",bn,scam
+message,"ব্যাংকের সতর্কতা পেয়ে কোনো কোড না দিয়ে অফিসিয়াল অ্যাপে যাচাই করেছি।",bn,benign
+message,"অফিসিয়াল ওয়েবসাইটে ব্যালেন্স দেখেছি এবং কোনো বার্তার লিংক খুলি নি।",bn,benign

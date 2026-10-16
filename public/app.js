@@ -2,41 +2,34 @@
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-let adminToken = "";
 let lastResult = null;
 let guideCategory = "all";
 let currentLocale = "en";
+let lastCheckInput = null;
 const HISTORY_STORAGE_KEY = "scamshield-check-history";
 const HISTORY_LIMIT = 10;
 const translations = {
   en: {
-    pageTitle: "ScamShield — pause, check, protect",
+    pageTitle: "ClearBeacon — pause, check, protect",
     languageSelectLabel: "Choose language", skipLink: "Skip to content",
     mainNavigation: "Main navigation", navCheck: "Check a message", navGuides: "Safety guides", navSafetyCenter: "Safety tools",
     navReport: "Report a scam", navModerator: "Moderator",
     heroEyebrow: "A calmer way to check", heroLineOne: "That message feels off.", heroLineTwo: "Let's look closer.",
     heroText: "Check a suspicious link or message. See the warning signs, understand what we checked, and choose a safer next step.",
+    heroCta: "Start a quick check",
     privacyPill: "Private by default · No account needed", artPause: "pause first", artCheck: "check the details",
     quickCheck: "YOUR QUICK CHECK", checkerHeading: "What would you like to check?", checkLabel: "CHECK",
-    tablist: "Choose what to check", tabUrl: "A link", tabMessage: "A message", tabScreenshot: "A screenshot", tabQr: "A QR code",
+    tablist: "Choose what to check", tabUrl: "A link", tabMessage: "A message",
     urlLabel: "Paste the web address you want to check", urlPlaceholder: "example.com/offer", checkLink: "Check link",
     urlPrivacy: "We never open the link. Don’t paste links containing private tokens or personal details.",
     messageLabel: "Paste the suspicious text", messagePlaceholder: "Paste the message here — remove names, phone numbers, and codes first.",
     messagePrivacy: "Analyzed on this server in memory. Not saved or sent to an outside service.", checkMessage: "Check message",
-    screenshotFileLabel: "Upload a screenshot to review", screenshotTextLabel: "Review the text captured from the screenshot",
-    screenshotPlaceholder: "Paste the message text you saw in the screenshot, then remove names, phone numbers, and codes first.",
-    screenshotPrivacy: "The image preview stays on this device. OCR runs in the browser if the library loads; otherwise you can paste the text manually.",
-    checkScreenshot: "Analyze screenshot",
-    qrFileLabel: "Upload a QR code image or scan one with your camera", qrTextLabel: "Decoded QR value",
-    qrPlaceholder: "A QR code can contain a link, code, or message. Paste or scan the value to review it.",
-    qrPrivacy: "The QR read stays on this device. The decoded value is only analyzed after you confirm it.",
-    qrCameraButton: "Use camera", checkQr: "Analyze QR value",
-    finePrint: "ScamShield is an independent educational tool — not a government service, security guarantee, or replacement for official reporting.",
-    howEyebrow: "CLEAR, NOT COMPLICATED", howTitle: "Know what raised a flag.",
-    howText: "We show the signals behind a result so you can decide what to do next.",
-    howOneTitle: "Check without clicking", howOneText: "Paste a link or message. We inspect the text only; suspicious links are never opened.",
-    howTwoTitle: "See the signals", howTwoText: "Understand the specific patterns we spotted — and which checks were unavailable.",
-    howThreeTitle: "Choose a safer step", howThreeText: "Get practical next steps. When unsure, verify with a trusted channel you find yourself.",
+    finePrint: "ClearBeacon is an independent educational tool — not a government service, security guarantee, or replacement for official reporting.",
+
+
+
+
+
     guidesEyebrow: "A LITTLE KNOW-HOW GOES FAR", guidesTitle: "Keep these close.",
     guideSearchLabel: "Search safety guides", guideSearchPlaceholder: "Search safety guides", guideFilters: "Filter safety guides",
     guideAll: "All", guideAccount: "Accounts & codes", guidePayments: "Payments & jobs", guideShopping: "Shopping & links",
@@ -53,17 +46,28 @@ const translations = {
     reportSummaryPlaceholder: "Briefly describe the request. Please remove names, phone numbers, and codes.",
     reportSubmit: "Send private report", statusEyebrow: "FOLLOW UP PRIVATELY", statusTitle: "Check your report status",
     statusText: "Enter the private reference you received after reporting.", statusLabel: "Private report reference",
-    statusPlaceholder: "Your private reference", statusSubmit: "Check status", moderatorSummary: "Moderator access",
-    moderatorIntro: "Restricted to authorized reviewers. Configure SCAMSHIELD_ADMIN_TOKEN on the server before use.",
-    moderatorTokenLabel: "Moderator token", moderatorLoad: "Load pending reports",
+    statusPlaceholder: "Your private reference", statusSubmit: "Check status",
+
+
     footerIntro: "An independent, educational decision-support project. No result guarantees that a link or message is safe.",
     footerCheck: "Check", footerReport: "Report", footerGuides: "Safety tips", footerHelp: "Official help ↗",
-    footerDisclaimer: "ScamShield is not affiliated with any government service.",
-    checking: "Checking…", sending: "Sending your private report…",
+    footerDisclaimer: "ClearBeacon is not affiliated with any government service.",
+    checking: "Checking locally…", sending: "Sending your private report…",
     reportSuccess: "Report received and pending review. Save this private reference to check status:",
     statusLoading: "Looking up your report…", statusResult: "Report status:", lastUpdated: "Last updated",
-    queueEmpty: "No reports are waiting for review.", target: "Target:",
-    pendingCount: "pending report(s).", promptReason: "Add a short reason for marking this report",
+    feedbackTitle: "Help improve this check",
+    feedbackLabel: "What may be wrong or missing? The checked text itself is not retained.",
+    feedbackSubmit: "Send private feedback",
+    feedbackReceived: "Thank you. Feedback was sent to the private review queue.",
+    imageNoSupport: "This browser does not support local QR or text extraction. Your image was not uploaded.",
+    imageNoContent: "No QR code or readable text was found. Nothing was uploaded.",
+    imageFoundUrl: "QR code found. The decoded link was not opened; it has been added to the link checker.",
+    imageFoundText: "Text extracted locally and copied to the message checker. Review it before submitting.",
+    deleteReport: "Delete my report and appeal",
+    deleteConfirm: "Permanently delete this report, its appeal, and moderation history?",
+    reportDeleted: "Your report and related appeal/history were deleted.",
+
+
     riskHigh: "High risk indicators", riskCaution: "Pause and verify", riskUnknown: "Unable to determine",
     riskNoKnown: "No known threat found", riskKnown: "Known malicious match", resultUnknown:
       "We could not make a reliable call from the checks currently available.",
@@ -74,6 +78,10 @@ const translations = {
     resultDisclaimer: "A result cannot guarantee that something is safe.",
     guidesNoMatch: "No guides match that search. Try another word or category.",
     statusPending: "pending review", statusVerified: "verified", statusRejected: "rejected", statusEscalated: "escalated",
+    appealPrompt: "Want this decision reviewed?",
+    appealLabel: "Explain what may have been missed (do not include passwords or codes)",
+    appealSubmit: "Request a review", appealPending: "An appeal is already awaiting review.",
+    appealSuccess: "Your appeal was received. A reviewer will reassess the report.",
     errorCategory: "Choose a listed report category.", errorSummary: "Add a little more detail (at least 12 characters).",
     errorReportNotFound: "No report was found for that reference.", errorNetwork: "The app could not reach the server. Check your connection and try again.",
     strengthWeak: "weak signal", strengthMedium: "moderate signal", strengthStrong: "strong signal",
@@ -92,9 +100,11 @@ const translations = {
     responseScenarioPayment: "I sent money or paid a fee", responseScenarioDevice: "I installed an app or gave device access",
     responseScenarioLink: "I opened a link or entered account details",
     countryHelpEyebrow: "OFFICIAL SUPPORT", countryHelpTitle: "Find help in your country", countrySelectLabel: "Choose a country",
-    countryHelpNote: "These links go to official reporting or cyber-safety services. Availability and remit vary. For urgent financial loss, contact your bank using a trusted number.",
+    countryHelpNote: "These are reference links to official or public-service sites, not live-verified endorsements. Availability and remit vary; confirm the address and scope before sharing information. For urgent financial loss, contact your bank using a trusted number.",
     countryUS: "United States", countryCanada: "Canada", countryIndia: "India", countryFrance: "France",
-    countryLinkReport: "Report or get official guidance", countryOrgFtc: "Federal Trade Commission — ReportFraud", countryOrgCafc: "Canadian Anti-Fraud Centre", countryOrgIndia: "National Cyber Crime Reporting Portal", countryOrgFrance: "Cybermalveillance.gouv.fr",
+    countryUK: "United Kingdom", countryAustralia: "Australia", countrySpain: "Spain", countryMexico: "Mexico",
+    countryPakistan: "Pakistan", countryUAE: "United Arab Emirates", countryBD: "Bangladesh",
+    countryLinkReport: "Report or get official guidance", countryOrgFtc: "Federal Trade Commission — ReportFraud", countryOrgCafc: "Canadian Anti-Fraud Centre", countryOrgIndia: "National Cyber Crime Reporting Portal", countryOrgFrance: "Cybermalveillance.gouv.fr", countryOrgBd: "Bangladesh Police",
     quizEyebrow: "PRACTICE SPOTTING SCAMS", quizTitle: "Quick safety quiz",
     quizIntro: "Try three short scenarios. Your answers stay in this browser session.",
     quizStart: "Start quiz", quizNext: "Next question", quizFinish: "See my result", quizAgain: "Try again",
@@ -108,12 +118,13 @@ const translations = {
     },
   },
   bn: {
-    pageTitle: "ScamShield — থামুন, যাচাই করুন, সুরক্ষিত থাকুন",
+    pageTitle: "ClearBeacon — থামুন, যাচাই করুন, সুরক্ষিত থাকুন",
     languageSelectLabel: "ভাষা বেছে নিন", skipLink: "মূল বিষয়বস্তুতে যান",
     mainNavigation: "প্রধান নেভিগেশন", navCheck: "বার্তা যাচাই", navGuides: "নিরাপত্তা নির্দেশিকা",
     navReport: "প্রতারণার তথ্য দিন", navModerator: "পর্যালোচক",
     heroEyebrow: "শান্তভাবে যাচাই করুন", heroLineOne: "বার্তাটি কি সন্দেহজনক?", heroLineTwo: "চলুন ভালো করে দেখি।",
     heroText: "সন্দেহজনক লিংক বা বার্তা পরীক্ষা করুন। সতর্কতার সংকেত বুঝুন, কী যাচাই হয়েছে দেখুন এবং নিরাপদ পরবর্তী পদক্ষেপ নিন।",
+    heroCta: "দ্রুত যাচাই শুরু করুন",
     privacyPill: "গোপনীয়তা আগে · অ্যাকাউন্ট লাগবে না", artPause: "আগে থামুন", artCheck: "বিস্তারিত যাচাই",
     quickCheck: "দ্রুত যাচাই", checkerHeading: "আপনি কী যাচাই করতে চান?", checkLabel: "যাচাই",
     tablist: "যাচাইয়ের ধরন বেছে নিন", tabUrl: "লিংক", tabMessage: "বার্তা",
@@ -121,12 +132,12 @@ const translations = {
     urlPrivacy: "আমরা লিংকটি খুলি না। ব্যক্তিগত টোকেন বা তথ্যসহ লিংক পেস্ট করবেন না।",
     messageLabel: "সন্দেহজনক লেখাটি পেস্ট করুন", messagePlaceholder: "বার্তাটি পেস্ট করুন — আগে নাম, ফোন নম্বর ও কোড মুছে দিন।",
     messagePrivacy: "এই সার্ভারে মেমোরিতে বিশ্লেষণ হয়। সংরক্ষণ বা বাইরের সেবায় পাঠানো হয় না।", checkMessage: "বার্তা যাচাই",
-    finePrint: "ScamShield একটি স্বতন্ত্র শিক্ষামূলক টুল — সরকারি সেবা বা নিরাপত্তার নিশ্চয়তা নয় এবং অফিসিয়াল রিপোর্টিংয়ের বিকল্পও নয়।",
-    howEyebrow: "সহজ ও স্পষ্ট", howTitle: "কোন বিষয়টি সতর্ক করেছে জানুন।",
-    howText: "ফলাফলের পেছনের সংকেতগুলো দেখুন, তারপর পরবর্তী পদক্ষেপ ঠিক করুন।",
-    howOneTitle: "ক্লিক না করেই যাচাই", howOneText: "লিংক বা বার্তা পেস্ট করুন। আমরা শুধু লেখা দেখি; সন্দেহজনক লিংক খুলি না।",
-    howTwoTitle: "সংকেতগুলো দেখুন", howTwoText: "কোন ধরনগুলো চোখে পড়েছে এবং কোন যাচাই করা যায়নি তা জানুন।",
-    howThreeTitle: "নিরাপদ পদক্ষেপ নিন", howThreeText: "করণীয় জেনে নিন। সন্দেহ থাকলে নিজে খুঁজে পাওয়া বিশ্বস্ত মাধ্যমে যাচাই করুন।",
+    finePrint: "ClearBeacon একটি স্বতন্ত্র শিক্ষামূলক টুল — সরকারি সেবা বা নিরাপত্তার নিশ্চয়তা নয় এবং অফিসিয়াল রিপোর্টিংয়ের বিকল্পও নয়।",
+
+
+
+
+
     guidesEyebrow: "কয়েকটি নিয়ম আপনাকে সুরক্ষিত রাখে", guidesTitle: "মনে রাখার মতো পরামর্শ",
     guideSearchLabel: "নিরাপত্তা নির্দেশিকা খুঁজুন", guideSearchPlaceholder: "নিরাপত্তা নির্দেশিকা খুঁজুন", guideFilters: "নিরাপত্তা নির্দেশিকা বাছাই",
     guideAll: "সব", guideAccount: "অ্যাকাউন্ট ও কোড", guidePayments: "পেমেন্ট ও চাকরি", guideShopping: "কেনাকাটা ও লিংক",
@@ -143,17 +154,17 @@ const translations = {
     reportSummaryPlaceholder: "অনুরোধটি সংক্ষেপে লিখুন। নাম, ফোন নম্বর ও কোড মুছে দিন।",
     reportSubmit: "গোপন রিপোর্ট পাঠান", statusEyebrow: "গোপনে অগ্রগতি জানুন", statusTitle: "রিপোর্টের অবস্থা দেখুন",
     statusText: "রিপোর্টের পরে পাওয়া গোপন রেফারেন্সটি লিখুন।", statusLabel: "গোপন রিপোর্ট রেফারেন্স",
-    statusPlaceholder: "আপনার গোপন রেফারেন্স", statusSubmit: "অবস্থা দেখুন", moderatorSummary: "পর্যালোচকের প্রবেশ",
-    moderatorIntro: "শুধু অনুমোদিত পর্যালোচকদের জন্য। ব্যবহারের আগে সার্ভারে SCAMSHIELD_ADMIN_TOKEN সেট করুন।",
-    moderatorTokenLabel: "পর্যালোচক টোকেন", moderatorLoad: "অপেক্ষমাণ রিপোর্ট দেখুন",
+    statusPlaceholder: "আপনার গোপন রেফারেন্স", statusSubmit: "অবস্থা দেখুন",
+
+
     footerIntro: "স্বতন্ত্র শিক্ষামূলক সিদ্ধান্ত-সহায়ক প্রকল্প। কোনো ফলাফলই লিংক বা বার্তা নিরাপদ হওয়ার নিশ্চয়তা দেয় না।",
     footerCheck: "যাচাই", footerReport: "রিপোর্ট", footerGuides: "নিরাপত্তা পরামর্শ", footerHelp: "অফিসিয়াল সহায়তা ↗",
-    footerDisclaimer: "ScamShield কোনো সরকারি সেবার সঙ্গে যুক্ত নয়।",
-    checking: "যাচাই হচ্ছে…", sending: "গোপন রিপোর্ট পাঠানো হচ্ছে…",
+    footerDisclaimer: "ClearBeacon কোনো সরকারি সেবার সঙ্গে যুক্ত নয়।",
+    checking: "স্থানীয়ভাবে যাচাই হচ্ছে…", sending: "গোপন রিপোর্ট পাঠানো হচ্ছে…",
     reportSuccess: "রিপোর্ট গৃহীত হয়েছে এবং পর্যালোচনার অপেক্ষায়। অবস্থা দেখার জন্য এই গোপন রেফারেন্সটি রাখুন:",
     statusLoading: "রিপোর্ট খোঁজা হচ্ছে…", statusResult: "রিপোর্টের অবস্থা:", lastUpdated: "সর্বশেষ হালনাগাদ",
-    queueEmpty: "পর্যালোচনার অপেক্ষায় কোনো রিপোর্ট নেই।", target: "লক্ষ্য:",
-    pendingCount: "টি অপেক্ষমাণ রিপোর্ট।", promptReason: "এই রিপোর্টটি চিহ্নিত করার সংক্ষিপ্ত কারণ লিখুন:",
+
+
     riskHigh: "উচ্চ ঝুঁকির সংকেত", riskCaution: "থামুন এবং যাচাই করুন", riskUnknown: "নিশ্চিত হওয়া যায়নি",
     riskNoKnown: "পরিচিত হুমকি মেলেনি", riskKnown: "ক্ষতিকর হিসেবে তালিকাভুক্ত",
     resultUnknown: "উপলভ্য যাচাই দিয়ে নির্ভরযোগ্য সিদ্ধান্তে পৌঁছানো যায়নি।",
@@ -170,11 +181,12 @@ const translations = {
     categoryNames: { all: "সব", account: "অ্যাকাউন্ট ও কোড", payments: "পেমেন্ট ও চাকরি", shopping: "কেনাকাটা ও লিংক" },
   },
   es: {
-    pageTitle: "ScamShield — pausa, comprueba, protégete",
+    pageTitle: "ClearBeacon — pausa, comprueba, protégete",
     languageSelectLabel: "Elegir idioma", skipLink: "Ir al contenido",
     mainNavigation: "Navegación principal", navCheck: "Comprobar un mensaje", navGuides: "Guías de seguridad", navSafetyCenter: "Herramientas de seguridad", navReport: "Denunciar una estafa", navModerator: "Moderación",
     heroEyebrow: "Comprueba con calma", heroLineOne: "¿Ese mensaje te parece raro?", heroLineTwo: "Vamos a revisarlo.",
     heroText: "Comprueba un enlace o mensaje sospechoso. Consulta las señales, entiende qué verificamos y elige un siguiente paso más seguro.",
+    heroCta: "Empezar una comprobación",
     privacyPill: "Privacidad primero · Sin cuenta", artPause: "detente primero", artCheck: "revisa los detalles",
     quickCheck: "COMPROBACIÓN RÁPIDA", checkerHeading: "¿Qué quieres comprobar?", checkLabel: "COMPROBAR",
     tablist: "Elige qué quieres comprobar", tabUrl: "Un enlace", tabMessage: "Un mensaje",
@@ -182,12 +194,12 @@ const translations = {
     urlPrivacy: "Nunca abrimos el enlace. No pegues enlaces con datos personales o tokens privados.",
     messageLabel: "Pega el texto sospechoso", messagePlaceholder: "Pega el mensaje aquí; elimina antes nombres, teléfonos y códigos.",
     messagePrivacy: "Se analiza en memoria en este servidor. No se guarda ni se envía a otros servicios.", checkMessage: "Comprobar mensaje",
-    finePrint: "ScamShield es una herramienta educativa independiente; no es un servicio gubernamental ni una garantía de seguridad.",
-    howEyebrow: "CLARO Y SENCILLO", howTitle: "Entiende qué señales aparecieron.",
-    howText: "Mostramos las señales para que puedas decidir qué hacer después.",
-    howOneTitle: "Comprueba sin hacer clic", howOneText: "Pega un enlace o mensaje. Solo analizamos el texto; nunca abrimos enlaces sospechosos.",
-    howTwoTitle: "Mira las señales", howTwoText: "Descubre qué patrones detectamos y qué comprobaciones no estaban disponibles.",
-    howThreeTitle: "Elige un paso seguro", howThreeText: "Recibe consejos prácticos. Si tienes dudas, verifica por un canal oficial que busques tú.",
+    finePrint: "ClearBeacon es una herramienta educativa independiente; no es un servicio gubernamental ni una garantía de seguridad.",
+
+
+
+
+
     guidesEyebrow: "CONSEJOS PRÁCTICOS", guidesTitle: "Tenlos a mano.",
     guideSearchLabel: "Buscar guías de seguridad", guideSearchPlaceholder: "Buscar guías de seguridad", guideFilters: "Filtrar guías de seguridad",
     guideAll: "Todas", guideAccount: "Cuentas y códigos", guidePayments: "Pagos y empleos", guideShopping: "Compras y enlaces",
@@ -203,17 +215,17 @@ const translations = {
     reportSummaryPlaceholder: "Describe brevemente la solicitud. Elimina nombres, teléfonos y códigos.",
     reportSubmit: "Enviar informe privado", statusEyebrow: "CONSULTA EN PRIVADO", statusTitle: "Consulta el estado del informe",
     statusText: "Introduce la referencia privada que recibiste.", statusLabel: "Referencia privada del informe",
-    statusPlaceholder: "Tu referencia privada", statusSubmit: "Consultar estado", moderatorSummary: "Acceso de moderación",
-    moderatorIntro: "Solo para revisores autorizados. Configura SCAMSHIELD_ADMIN_TOKEN en el servidor.",
-    moderatorTokenLabel: "Token de moderación", moderatorLoad: "Cargar informes pendientes",
+    statusPlaceholder: "Tu referencia privada", statusSubmit: "Consultar estado",
+
+
     footerIntro: "Proyecto educativo independiente para ayudar a decidir. Ningún resultado garantiza que un enlace o mensaje sea seguro.",
     footerCheck: "Comprobar", footerReport: "Informar", footerGuides: "Consejos", footerHelp: "Ayuda oficial ↗",
-    footerDisclaimer: "ScamShield no está afiliado a ningún servicio gubernamental.",
-    checking: "Comprobando…", sending: "Enviando el informe privado…",
+    footerDisclaimer: "ClearBeacon no está afiliado a ningún servicio gubernamental.",
+    checking: "Comprobando localmente…", sending: "Enviando el informe privado…",
     reportSuccess: "Informe recibido y pendiente de revisión. Guarda esta referencia privada para consultar su estado:",
     statusLoading: "Buscando el informe…", statusResult: "Estado del informe:", lastUpdated: "Última actualización",
-    queueEmpty: "No hay informes pendientes.", target: "Objetivo:", pendingCount: "informe(s) pendiente(s).",
-    promptReason: "Añade un motivo breve para marcar este informe",
+
+
     riskHigh: "Indicios de riesgo alto", riskCaution: "Detente y verifica", riskUnknown: "No se pudo determinar",
     riskNoKnown: "No se encontraron amenazas conocidas", riskKnown: "Coincidencia con amenaza conocida",
     resultUnknown: "No podemos llegar a una conclusión fiable con las comprobaciones disponibles.",
@@ -237,9 +249,11 @@ const translations = {
     responseScenarioPayment: "Envié dinero o pagué una tarifa", responseScenarioDevice: "Instalé una aplicación o di acceso al dispositivo",
     responseScenarioLink: "Abrí un enlace o introduje datos de mi cuenta",
     countryHelpEyebrow: "AYUDA OFICIAL", countryHelpTitle: "Encuentra ayuda en tu país", countrySelectLabel: "Elige un país",
-    countryHelpNote: "Estos enlaces llevan a servicios oficiales de denuncia o ciberseguridad. Su disponibilidad y competencia varían. Si hay una pérdida económica urgente, contacta con tu banco mediante un número de confianza.",
+    countryHelpNote: "Son enlaces de referencia a sitios oficiales o de servicio público; no son recomendaciones verificadas en tiempo real. La disponibilidad y competencia varían: confirma la dirección y el alcance antes de compartir información. Si hay una pérdida económica urgente, contacta con tu banco mediante un número de confianza.",
     countryUS: "Estados Unidos", countryCanada: "Canadá", countryIndia: "India", countryFrance: "Francia",
-    countryLinkReport: "Denunciar u obtener orientación oficial", countryOrgFtc: "Comisión Federal de Comercio — ReportFraud", countryOrgCafc: "Centro Canadiense Antifraude", countryOrgIndia: "Portal Nacional de Denuncias de Ciberdelitos", countryOrgFrance: "Cybermalveillance.gouv.fr",
+    countryUK: "Reino Unido", countryAustralia: "Australia", countrySpain: "España", countryMexico: "México",
+    countryPakistan: "Pakistán", countryUAE: "Emiratos Árabes Unidos", countryBD: "Bangladés",
+    countryLinkReport: "Denunciar u obtener orientación oficial", countryOrgFtc: "Comisión Federal de Comercio — ReportFraud", countryOrgCafc: "Centro Canadiense Antifraude", countryOrgIndia: "Portal Nacional de Denuncias de Ciberdelitos", countryOrgFrance: "Cybermalveillance.gouv.fr", countryOrgBd: "Policía de Bangladesh",
     quizEyebrow: "PRACTICA CÓMO DETECTAR ESTAFAS", quizTitle: "Cuestionario rápido de seguridad",
     quizIntro: "Prueba tres situaciones breves. Tus respuestas permanecen en esta sesión del navegador.",
     quizStart: "Empezar", quizNext: "Siguiente pregunta", quizFinish: "Ver resultado", quizAgain: "Intentarlo de nuevo",
@@ -252,36 +266,33 @@ const translations = {
       link: { label: "Abrí un enlace o introduje datos de mi cuenta", steps: ["Si solo abriste la página, ciérrala y no descargues archivos ni introduzcas más datos.", "Si escribiste una contraseña, cámbiala desde la aplicación o sitio oficial usando un dispositivo de confianza y protege las cuentas donde la reutilizaste.", "Si compartiste datos de pago o identidad, contacta con el banco o proveedor correspondiente y sigue las pautas oficiales de denuncia de tu país."] },
     },
     statusPending: "pendiente de revisión", statusVerified: "verificado", statusRejected: "rechazado", statusEscalated: "derivado",
+    appealPrompt: "¿Quieres que se revise esta decisión?",
+    appealLabel: "Explica qué pudo pasarse por alto (no incluyas contraseñas ni códigos)",
+    appealSubmit: "Solicitar revisión", appealPending: "Ya hay una apelación pendiente.",
+    appealSuccess: "Recibimos tu apelación. Una persona revisará el informe de nuevo.",
     errorCategory: "Elige una categoría de informe.", errorSummary: "Añade más detalles (al menos 12 caracteres).",
     errorReportNotFound: "No se encontró ningún informe con esa referencia.", errorNetwork: "No se pudo conectar con el servidor. Comprueba tu conexión.",
   },
   fr: {
-    pageTitle: "ScamShield — faites une pause, vérifiez, protégez-vous",
+    pageTitle: "ClearBeacon — faites une pause, vérifiez, protégez-vous",
     languageSelectLabel: "Choisir la langue", skipLink: "Aller au contenu",
     mainNavigation: "Navigation principale", navCheck: "Vérifier un message", navGuides: "Conseils de sécurité", navSafetyCenter: "Outils de sécurité", navReport: "Signaler une arnaque", navModerator: "Modération",
     heroEyebrow: "Vérifiez en toute sérénité", heroLineOne: "Ce message vous semble étrange ?", heroLineTwo: "Examinons-le ensemble.",
     heroText: "Vérifiez un lien ou un message suspect. Consultez les signaux, comprenez nos vérifications et choisissez une prochaine étape plus sûre.",
+    heroCta: "Commencer une vérification",
     privacyPill: "Confidentialité d'abord · Sans compte", artPause: "faites une pause", artCheck: "vérifiez les détails",
     quickCheck: "VÉRIFICATION RAPIDE", checkerHeading: "Que souhaitez-vous vérifier ?", checkLabel: "VÉRIFIER",
-    tablist: "Choisissez ce que vous voulez vérifier", tabUrl: "Un lien", tabMessage: "Un message", tabScreenshot: "Une capture d'écran", tabQr: "Un QR code",
+    tablist: "Choisissez ce que vous voulez vérifier", tabUrl: "Un lien", tabMessage: "Un message",
     urlLabel: "Collez l'adresse web à vérifier", urlPlaceholder: "exemple.fr/offre", checkLink: "Vérifier le lien",
     urlPrivacy: "Nous n'ouvrons jamais le lien. Ne collez pas d'adresse contenant des données personnelles ou des jetons privés.",
     messageLabel: "Collez le texte suspect", messagePlaceholder: "Collez le message ici ; supprimez d'abord noms, numéros et codes.",
     messagePrivacy: "Analyse en mémoire sur ce serveur. Aucune sauvegarde ni transmission à un service externe.", checkMessage: "Vérifier le message",
-    screenshotFileLabel: "Téléversez une capture pour la vérifier", screenshotTextLabel: "Vérifiez le texte extrait de la capture",
-    screenshotPlaceholder: "Collez le texte du message visible sur la capture, puis supprimez noms, numéros et codes.",
-    screenshotPrivacy: "L'aperçu reste sur cet appareil. L'OCR s'exécute dans le navigateur si la bibliothèque est disponible ; sinon, vous pouvez coller le texte manuellement.",
-    checkScreenshot: "Analyser la capture",
-    qrFileLabel: "Téléversez une image QR ou scannez-en une avec votre appareil photo", qrTextLabel: "Valeur QR décodée",
-    qrPlaceholder: "Un QR code peut contenir un lien, un code ou un message. Collez ou scannez la valeur pour la vérifier.",
-    qrPrivacy: "La lecture du QR reste sur cet appareil. La valeur décodée n'est analysée qu'après validation.",
-    qrCameraButton: "Utiliser la caméra", checkQr: "Analyser la valeur QR",
-    finePrint: "ScamShield est un outil éducatif indépendant, ni un service public ni une garantie de sécurité.",
-    howEyebrow: "CLAIR ET SIMPLE", howTitle: "Comprenez les signaux détectés.",
-    howText: "Nous expliquons les signaux pour vous aider à décider de la suite.",
-    howOneTitle: "Vérifiez sans cliquer", howOneText: "Collez un lien ou un message. Nous analysons le texte sans ouvrir les liens suspects.",
-    howTwoTitle: "Consultez les signaux", howTwoText: "Découvrez les schémas repérés et les vérifications indisponibles.",
-    howThreeTitle: "Choisissez une étape sûre", howThreeText: "Recevez des conseils pratiques. En cas de doute, vérifiez via un canal officiel que vous trouvez vous-même.",
+    finePrint: "ClearBeacon est un outil éducatif indépendant, ni un service public ni une garantie de sécurité.",
+
+
+
+
+
     guidesEyebrow: "CONSEILS PRATIQUES", guidesTitle: "À garder en tête.",
     guideSearchLabel: "Rechercher des conseils de sécurité", guideSearchPlaceholder: "Rechercher des conseils", guideFilters: "Filtrer les conseils de sécurité",
     guideAll: "Tous", guideAccount: "Comptes et codes", guidePayments: "Paiements et emplois", guideShopping: "Achats et liens",
@@ -297,17 +308,17 @@ const translations = {
     reportSummaryPlaceholder: "Décrivez brièvement la demande. Supprimez noms, numéros et codes.",
     reportSubmit: "Envoyer un signalement privé", statusEyebrow: "SUIVI PRIVÉ", statusTitle: "Consulter le statut du signalement",
     statusText: "Saisissez la référence privée reçue après le signalement.", statusLabel: "Référence privée",
-    statusPlaceholder: "Votre référence privée", statusSubmit: "Vérifier le statut", moderatorSummary: "Accès modérateur",
-    moderatorIntro: "Réservé aux personnes autorisées. Configurez SCAMSHIELD_ADMIN_TOKEN sur le serveur.",
-    moderatorTokenLabel: "Jeton modérateur", moderatorLoad: "Charger les signalements",
+    statusPlaceholder: "Votre référence privée", statusSubmit: "Vérifier le statut",
+
+
     footerIntro: "Projet éducatif indépendant d'aide à la décision. Aucun résultat ne garantit qu'un lien ou message est sûr.",
     footerCheck: "Vérifier", footerReport: "Signaler", footerGuides: "Conseils", footerHelp: "Aide officielle ↗",
-    footerDisclaimer: "ScamShield n'est affilié à aucun service gouvernemental.",
-    checking: "Vérification…", sending: "Envoi du signalement privé…",
+    footerDisclaimer: "ClearBeacon n'est affilié à aucun service gouvernemental.",
+    checking: "Vérification locale…", sending: "Envoi du signalement privé…",
     reportSuccess: "Signalement reçu, en attente d'examen. Conservez cette référence privée pour suivre son statut :",
     statusLoading: "Recherche du signalement…", statusResult: "Statut :", lastUpdated: "Dernière mise à jour",
-    queueEmpty: "Aucun signalement en attente.", target: "Cible :", pendingCount: "signalement(s) en attente.",
-    promptReason: "Ajoutez un bref motif pour marquer ce signalement",
+
+
     riskHigh: "Indices de risque élevé", riskCaution: "Faites une pause et vérifiez", riskUnknown: "Impossible à déterminer",
     riskNoKnown: "Aucune menace connue trouvée", riskKnown: "Correspondance avec une menace connue",
     resultUnknown: "Les vérifications disponibles ne permettent pas de conclure de façon fiable.",
@@ -331,9 +342,11 @@ const translations = {
     responseScenarioPayment: "J'ai envoyé de l'argent ou payé des frais", responseScenarioDevice: "J'ai installé une application ou donné accès à mon appareil",
     responseScenarioLink: "J'ai ouvert un lien ou saisi les informations de mon compte",
     countryHelpEyebrow: "ASSISTANCE OFFICIELLE", countryHelpTitle: "Trouvez de l'aide dans votre pays", countrySelectLabel: "Choisissez un pays",
-    countryHelpNote: "Ces liens mènent à des services officiels de signalement ou de cybersécurité. Leur disponibilité et leur champ d'action varient. En cas de perte financière urgente, contactez votre banque avec un numéro de confiance.",
+    countryHelpNote: "Ces liens sont des références vers des sites officiels ou publics, et non des recommandations vérifiées en temps réel. Leur disponibilité et leur champ d'action varient ; vérifiez l'adresse et le service avant de communiquer des informations. En cas de perte financière urgente, contactez votre banque avec un numéro de confiance.",
     countryUS: "États-Unis", countryCanada: "Canada", countryIndia: "Inde", countryFrance: "France",
-    countryLinkReport: "Signaler ou obtenir des conseils officiels", countryOrgFtc: "Commission fédérale du commerce — ReportFraud", countryOrgCafc: "Centre antifraude du Canada", countryOrgIndia: "Portail national de signalement de la cybercriminalité", countryOrgFrance: "Cybermalveillance.gouv.fr",
+    countryUK: "Royaume-Uni", countryAustralia: "Australie", countrySpain: "Espagne", countryMexico: "Mexique",
+    countryPakistan: "Pakistan", countryUAE: "Émirats arabes unis", countryBD: "Bangladesh",
+    countryLinkReport: "Signaler ou obtenir des conseils officiels", countryOrgFtc: "Commission fédérale du commerce — ReportFraud", countryOrgCafc: "Centre antifraude du Canada", countryOrgIndia: "Portail national de signalement de la cybercriminalité", countryOrgFrance: "Cybermalveillance.gouv.fr", countryOrgBd: "Police du Bangladesh",
     quizEyebrow: "ENTRAÎNEZ-VOUS À REPÉRER LES ARNAQUES", quizTitle: "Quiz rapide de sécurité",
     quizIntro: "Essayez trois courtes situations. Vos réponses restent dans cette session du navigateur.",
     quizStart: "Commencer", quizNext: "Question suivante", quizFinish: "Voir mon résultat", quizAgain: "Recommencer",
@@ -346,15 +359,20 @@ const translations = {
       link: { label: "J'ai ouvert un lien ou saisi les informations de mon compte", steps: ["Si vous avez seulement ouvert la page, fermez-la et ne téléchargez rien ni ne saisissez d'autres informations.", "Si vous avez saisi un mot de passe, changez-le via le site ou l'application officielle depuis un appareil de confiance et sécurisez les comptes où il est réutilisé.", "Si vous avez partagé des données de paiement ou d'identité, contactez la banque ou le prestataire concerné et suivez les consignes officielles de signalement de votre pays."] },
     },
     statusPending: "en attente d'examen", statusVerified: "vérifié", statusRejected: "rejeté", statusEscalated: "transmis",
+    appealPrompt: "Souhaitez-vous demander un nouvel examen ?",
+    appealLabel: "Expliquez ce qui a pu être oublié (sans mot de passe ni code)",
+    appealSubmit: "Demander un examen", appealPending: "Un recours est déjà en attente.",
+    appealSuccess: "Votre recours a été reçu. Le signalement sera réexaminé.",
     errorCategory: "Choisissez une catégorie de signalement.", errorSummary: "Ajoutez des précisions (au moins 12 caractères).",
     errorReportNotFound: "Aucun signalement ne correspond à cette référence.", errorNetwork: "Connexion au serveur impossible. Vérifiez votre connexion.",
   },
   hi: {
-    pageTitle: "ScamShield — रुकें, जाँचें, सुरक्षित रहें",
+    pageTitle: "ClearBeacon — रुकें, जाँचें, सुरक्षित रहें",
     languageSelectLabel: "भाषा चुनें", skipLink: "मुख्य सामग्री पर जाएँ",
     mainNavigation: "मुख्य नेविगेशन", navCheck: "संदेश जाँचें", navGuides: "सुरक्षा मार्गदर्शिकाएँ", navSafetyCenter: "सुरक्षा साधन", navReport: "धोखाधड़ी की रिपोर्ट करें", navModerator: "समीक्षा",
     heroEyebrow: "शांति से जाँचें", heroLineOne: "क्या यह संदेश संदिग्ध लगता है?", heroLineTwo: "आइए, ध्यान से देखें।",
     heroText: "संदिग्ध लिंक या संदेश जाँचें। चेतावनी के संकेत समझें, जाँच का विवरण देखें और सुरक्षित अगला कदम चुनें।",
+    heroCta: "त्वरित जाँच शुरू करें",
     privacyPill: "गोपनीयता पहले · खाता आवश्यक नहीं", artPause: "पहले रुकें", artCheck: "विवरण जाँचें",
     quickCheck: "त्वरित जाँच", checkerHeading: "आप क्या जाँचना चाहते हैं?", checkLabel: "जाँचें",
     tablist: "जाँचने के लिए चुनें", tabUrl: "लिंक", tabMessage: "संदेश",
@@ -362,12 +380,12 @@ const translations = {
     urlPrivacy: "हम लिंक कभी नहीं खोलते। निजी टोकन या व्यक्तिगत जानकारी वाले लिंक पेस्ट न करें।",
     messageLabel: "संदिग्ध संदेश पेस्ट करें", messagePlaceholder: "यहाँ संदेश पेस्ट करें — पहले नाम, फ़ोन नंबर और कोड हटा दें।",
     messagePrivacy: "इस सर्वर पर मेमोरी में विश्लेषण होता है। इसे सहेजा या बाहरी सेवा को भेजा नहीं जाता।", checkMessage: "संदेश जाँचें",
-    finePrint: "ScamShield एक स्वतंत्र शैक्षिक टूल है — सरकारी सेवा या सुरक्षा की गारंटी नहीं।",
-    howEyebrow: "स्पष्ट और सरल", howTitle: "जानें किस संकेत ने चेताया।",
-    howText: "हम परिणाम के पीछे के संकेत बताते हैं ताकि आप अगला कदम चुन सकें।",
-    howOneTitle: "क्लिक किए बिना जाँचें", howOneText: "लिंक या संदेश पेस्ट करें। हम केवल टेक्स्ट देखते हैं; संदिग्ध लिंक नहीं खोलते।",
-    howTwoTitle: "संकेत देखें", howTwoText: "जानें कौन-से पैटर्न मिले और कौन-सी जाँच उपलब्ध नहीं थी।",
-    howThreeTitle: "सुरक्षित कदम चुनें", howThreeText: "उपयोगी सलाह पाएँ। संदेह हो तो स्वयं खोजे गए आधिकारिक माध्यम से पुष्टि करें।",
+    finePrint: "ClearBeacon एक स्वतंत्र शैक्षिक टूल है — सरकारी सेवा या सुरक्षा की गारंटी नहीं।",
+
+
+
+
+
     guidesEyebrow: "काम की सुरक्षा सलाह", guidesTitle: "इन्हें याद रखें।",
     guideSearchLabel: "सुरक्षा मार्गदर्शिका खोजें", guideSearchPlaceholder: "सुरक्षा सलाह खोजें", guideFilters: "सुरक्षा सलाह फ़िल्टर करें",
     guideAll: "सभी", guideAccount: "खाते और कोड", guidePayments: "भुगतान और नौकरी", guideShopping: "खरीदारी और लिंक",
@@ -383,17 +401,17 @@ const translations = {
     reportSummaryPlaceholder: "अनुरोध का संक्षिप्त विवरण दें। नाम, फ़ोन नंबर और कोड हटा दें।",
     reportSubmit: "निजी रिपोर्ट भेजें", statusEyebrow: "निजी रूप से स्थिति देखें", statusTitle: "रिपोर्ट की स्थिति देखें",
     statusText: "रिपोर्ट के बाद मिला निजी संदर्भ दर्ज करें।", statusLabel: "निजी रिपोर्ट संदर्भ",
-    statusPlaceholder: "आपका निजी संदर्भ", statusSubmit: "स्थिति जाँचें", moderatorSummary: "समीक्षक प्रवेश",
-    moderatorIntro: "केवल अधिकृत समीक्षकों के लिए। उपयोग से पहले सर्वर पर SCAMSHIELD_ADMIN_TOKEN सेट करें।",
-    moderatorTokenLabel: "समीक्षक टोकन", moderatorLoad: "लंबित रिपोर्ट लोड करें",
+    statusPlaceholder: "आपका निजी संदर्भ", statusSubmit: "स्थिति जाँचें",
+
+
     footerIntro: "स्वतंत्र शैक्षिक निर्णय-सहायक परियोजना। कोई परिणाम लिंक या संदेश के सुरक्षित होने की गारंटी नहीं देता।",
     footerCheck: "जाँचें", footerReport: "रिपोर्ट", footerGuides: "सुरक्षा सलाह", footerHelp: "आधिकारिक सहायता ↗",
-    footerDisclaimer: "ScamShield किसी सरकारी सेवा से संबद्ध नहीं है।",
-    checking: "जाँच रहे हैं…", sending: "निजी रिपोर्ट भेज रहे हैं…",
+    footerDisclaimer: "ClearBeacon किसी सरकारी सेवा से संबद्ध नहीं है।",
+    checking: "स्थानीय रूप से जाँच रहे हैं…", sending: "निजी रिपोर्ट भेज रहे हैं…",
     reportSuccess: "रिपोर्ट मिली और समीक्षा की प्रतीक्षा में है। स्थिति देखने के लिए यह निजी संदर्भ सुरक्षित रखें:",
     statusLoading: "रिपोर्ट खोज रहे हैं…", statusResult: "रिपोर्ट की स्थिति:", lastUpdated: "आख़िरी बार अपडेट",
-    queueEmpty: "समीक्षा के लिए कोई रिपोर्ट लंबित नहीं है।", target: "लक्ष्य:", pendingCount: "लंबित रिपोर्ट।",
-    promptReason: "इस रिपोर्ट को चिह्नित करने का संक्षिप्त कारण लिखें",
+
+
     riskHigh: "ज़्यादा जोखिम के संकेत", riskCaution: "रुकें और जाँचें", riskUnknown: "निर्धारित नहीं किया जा सका",
     riskNoKnown: "कोई ज्ञात खतरा नहीं मिला", riskKnown: "ज्ञात खतरे से मेल",
     resultUnknown: "उपलब्ध जाँच से विश्वसनीय निर्णय नहीं हो सका।",
@@ -417,9 +435,11 @@ const translations = {
     responseScenarioPayment: "मैंने पैसे भेजे या शुल्क दिया", responseScenarioDevice: "मैंने ऐप इंस्टॉल किया या डिवाइस का ऐक्सेस दिया",
     responseScenarioLink: "मैंने लिंक खोला या खाते की जानकारी भरी",
     countryHelpEyebrow: "आधिकारिक सहायता", countryHelpTitle: "अपने देश में सहायता पाएँ", countrySelectLabel: "देश चुनें",
-    countryHelpNote: "ये लिंक आधिकारिक रिपोर्टिंग या साइबर-सुरक्षा सेवाओं के हैं। उनकी उपलब्धता और अधिकार-क्षेत्र अलग हो सकते हैं। तुरंत वित्तीय नुकसान होने पर भरोसेमंद नंबर से बैंक से संपर्क करें।",
+    countryHelpNote: "ये आधिकारिक या सार्वजनिक सेवा साइटों के संदर्भ लिंक हैं; इनकी वर्तमान उपलब्धता की पुष्टि नहीं की गई है। सेवा और अधिकार-क्षेत्र अलग हो सकते हैं—जानकारी साझा करने से पहले पता और दायरा जाँचें। तत्काल वित्तीय नुकसान होने पर भरोसेमंद नंबर से बैंक से संपर्क करें।",
     countryUS: "संयुक्त राज्य", countryCanada: "कनाडा", countryIndia: "भारत", countryFrance: "फ्रांस",
-    countryLinkReport: "रिपोर्ट करें या आधिकारिक मार्गदर्शन पाएँ", countryOrgFtc: "फ़ेडरल ट्रेड कमीशन — ReportFraud", countryOrgCafc: "कनाडाई एंटी-फ्रॉड सेंटर", countryOrgIndia: "राष्ट्रीय साइबर अपराध रिपोर्टिंग पोर्टल", countryOrgFrance: "Cybermalveillance.gouv.fr",
+    countryUK: "यूनाइटेड किंगडम", countryAustralia: "ऑस्ट्रेलिया", countrySpain: "स्पेन", countryMexico: "मेक्सिको",
+    countryPakistan: "पाकिस्तान", countryUAE: "संयुक्त अरब अमीरात", countryBD: "बांग्लादेश",
+    countryLinkReport: "रिपोर्ट करें या आधिकारिक मार्गदर्शन पाएँ", countryOrgFtc: "फ़ेडरल ट्रेड कमीशन — ReportFraud", countryOrgCafc: "कनाडाई एंटी-फ्रॉड सेंटर", countryOrgIndia: "राष्ट्रीय साइबर अपराध रिपोर्टिंग पोर्टल", countryOrgFrance: "Cybermalveillance.gouv.fr", countryOrgBd: "बांग्लादेश पुलिस",
     quizEyebrow: "धोखाधड़ी पहचानने का अभ्यास करें", quizTitle: "छोटी सुरक्षा प्रश्नोत्तरी",
     quizIntro: "तीन छोटे उदाहरण आज़माएँ। आपके जवाब इसी ब्राउज़र सत्र में रहते हैं।",
     quizStart: "शुरू करें", quizNext: "अगला सवाल", quizFinish: "नतीजा देखें", quizAgain: "फिर से खेलें",
@@ -432,15 +452,20 @@ const translations = {
       link: { label: "मैंने लिंक खोला या खाते की जानकारी भरी", steps: ["अगर आपने सिर्फ पेज खोला था, उसे बंद करें और फ़ाइल डाउनलोड या और जानकारी दर्ज न करें।", "पासवर्ड दर्ज किया हो तो भरोसेमंद डिवाइस से आधिकारिक ऐप/साइट पर बदलें और जहाँ वही पासवर्ड इस्तेमाल किया है उन खातों को भी सुरक्षित करें।", "भुगतान या पहचान की जानकारी साझा की हो तो संबंधित बैंक/सेवा से संपर्क करें और देश की आधिकारिक रिपोर्टिंग सलाह अपनाएँ।"] },
     },
     statusPending: "समीक्षा लंबित", statusVerified: "सत्यापित", statusRejected: "अस्वीकृत", statusEscalated: "आगे भेजा",
+    appealPrompt: "क्या आप इस निर्णय की दोबारा समीक्षा चाहते हैं?",
+    appealLabel: "बताएँ कि क्या छूट गया हो सकता है (पासवर्ड या कोड न लिखें)",
+    appealSubmit: "समीक्षा का अनुरोध करें", appealPending: "एक अपील पहले से समीक्षा के लिए लंबित है।",
+    appealSuccess: "आपकी अपील मिल गई। समीक्षक रिपोर्ट का फिर से आकलन करेगा।",
     errorCategory: "रिपोर्ट की सूची में से श्रेणी चुनें।", errorSummary: "थोड़ा और विवरण दें (कम से कम 12 अक्षर)।",
     errorReportNotFound: "इस संदर्भ से कोई रिपोर्ट नहीं मिली।", errorNetwork: "सर्वर से संपर्क नहीं हो सका। अपना कनेक्शन जाँचें।",
   },
   ar: {
-    pageTitle: "ScamShield — توقف، تحقق، احمِ نفسك",
+    pageTitle: "ClearBeacon — توقف، تحقق، احمِ نفسك",
     languageSelectLabel: "اختر اللغة", skipLink: "انتقل إلى المحتوى",
     mainNavigation: "التنقل الرئيسي", navCheck: "تحقق من رسالة", navGuides: "إرشادات الأمان", navSafetyCenter: "أدوات الأمان", navReport: "أبلغ عن احتيال", navModerator: "المراجعة",
     heroEyebrow: "تحقق بهدوء", heroLineOne: "هل تبدو هذه الرسالة مريبة؟", heroLineTwo: "لنراجعها معاً.",
     heroText: "تحقق من رابط أو رسالة مريبة. اطّلع على المؤشرات وافهم ما فحصناه واختر خطوة تالية أكثر أماناً.",
+    heroCta: "ابدأ فحصاً سريعاً",
     privacyPill: "الخصوصية أولاً · لا حاجة إلى حساب", artPause: "توقف أولاً", artCheck: "تحقق من التفاصيل",
     quickCheck: "فحص سريع", checkerHeading: "ما الذي تريد فحصه؟", checkLabel: "افحص",
     tablist: "اختر ما تريد فحصه", tabUrl: "رابط", tabMessage: "رسالة",
@@ -448,12 +473,12 @@ const translations = {
     urlPrivacy: "لا نفتح الرابط مطلقاً. لا تلصق روابط تتضمن رموزاً خاصة أو بيانات شخصية.",
     messageLabel: "ألصق النص المريب", messagePlaceholder: "ألصق الرسالة هنا — احذف الأسماء وأرقام الهاتف والرموز أولاً.",
     messagePrivacy: "يُحلل النص في ذاكرة هذا الخادم. لا يُحفظ ولا يُرسل إلى خدمة خارجية.", checkMessage: "افحص الرسالة",
-    finePrint: "ScamShield أداة تعليمية مستقلة، وليست خدمة حكومية أو ضماناً للأمان.",
-    howEyebrow: "واضح وبسيط", howTitle: "افهم المؤشرات التي ظهرت.",
-    howText: "نعرض المؤشرات لتتمكن من اختيار ما ستفعله لاحقاً.",
-    howOneTitle: "تحقق دون النقر", howOneText: "ألصق رابطاً أو رسالة. نفحص النص فقط ولا نفتح الروابط المريبة.",
-    howTwoTitle: "اطّلع على المؤشرات", howTwoText: "اعرف الأنماط التي رصدناها والفحوصات غير المتاحة.",
-    howThreeTitle: "اختر خطوة آمنة", howThreeText: "احصل على نصائح عملية. عند الشك، تحقق عبر قناة رسمية تبحث عنها بنفسك.",
+    finePrint: "ClearBeacon أداة تعليمية مستقلة، وليست خدمة حكومية أو ضماناً للأمان.",
+
+
+
+
+
     guidesEyebrow: "نصائح مفيدة", guidesTitle: "احتفظ بهذه الإرشادات.",
     guideSearchLabel: "ابحث في إرشادات الأمان", guideSearchPlaceholder: "ابحث في إرشادات الأمان", guideFilters: "تصفية إرشادات الأمان",
     guideAll: "الكل", guideAccount: "الحسابات والرموز", guidePayments: "المدفوعات والوظائف", guideShopping: "التسوق والروابط",
@@ -469,17 +494,17 @@ const translations = {
     reportSummaryPlaceholder: "صف الطلب بإيجاز. احذف الأسماء وأرقام الهاتف والرموز.",
     reportSubmit: "أرسل بلاغاً خاصاً", statusEyebrow: "متابعة خاصة", statusTitle: "تحقق من حالة البلاغ",
     statusText: "أدخل المرجع الخاص الذي تلقيته بعد الإبلاغ.", statusLabel: "مرجع البلاغ الخاص",
-    statusPlaceholder: "مرجعك الخاص", statusSubmit: "تحقق من الحالة", moderatorSummary: "دخول المراجع",
-    moderatorIntro: "للمراجعين المصرح لهم فقط. أعد إعداد SCAMSHIELD_ADMIN_TOKEN على الخادم.",
-    moderatorTokenLabel: "رمز المراجع", moderatorLoad: "تحميل البلاغات المعلقة",
+    statusPlaceholder: "مرجعك الخاص", statusSubmit: "تحقق من الحالة",
+
+
     footerIntro: "مشروع تعليمي مستقل للمساعدة على اتخاذ القرار. لا تضمن أي نتيجة أمان رابط أو رسالة.",
     footerCheck: "تحقق", footerReport: "إبلاغ", footerGuides: "نصائح الأمان", footerHelp: "مساعدة رسمية ↗",
-    footerDisclaimer: "لا يرتبط ScamShield بأي خدمة حكومية.",
-    checking: "جارٍ الفحص…", sending: "جارٍ إرسال البلاغ الخاص…",
+    footerDisclaimer: "لا يرتبط ClearBeacon بأي خدمة حكومية.",
+    checking: "جارٍ الفحص محلياً…", sending: "جارٍ إرسال البلاغ الخاص…",
     reportSuccess: "تم استلام البلاغ وهو قيد المراجعة. احتفظ بهذا المرجع الخاص لمتابعة الحالة:",
     statusLoading: "جارٍ البحث عن البلاغ…", statusResult: "حالة البلاغ:", lastUpdated: "آخر تحديث",
-    queueEmpty: "لا توجد بلاغات بانتظار المراجعة.", target: "الهدف:", pendingCount: "بلاغات معلقة.",
-    promptReason: "أضف سبباً موجزاً لوضع علامة على هذا البلاغ",
+
+
     riskHigh: "مؤشرات خطورة مرتفعة", riskCaution: "توقف وتحقق", riskUnknown: "تعذر التحديد",
     riskNoKnown: "لم يُعثر على تهديد معروف", riskKnown: "تطابق مع تهديد معروف",
     resultUnknown: "لا تسمح الفحوصات المتاحة باستنتاج موثوق.",
@@ -503,9 +528,11 @@ const translations = {
     responseScenarioPayment: "أرسلت المال أو دفعت رسوماً", responseScenarioDevice: "ثبّت تطبيقاً أو منحت الوصول إلى جهازي",
     responseScenarioLink: "فتحت رابطاً أو أدخلت بيانات حسابي",
     countryHelpEyebrow: "دعم رسمي", countryHelpTitle: "اعثر على مساعدة في بلدك", countrySelectLabel: "اختر بلداً",
-    countryHelpNote: "تؤدي هذه الروابط إلى خدمات رسمية للإبلاغ أو السلامة السيبرانية. يختلف توفرها واختصاصها. عند خسارة مالية عاجلة، اتصل بالبنك عبر رقم موثوق.",
+    countryHelpNote: "هذه روابط مرجعية لمواقع رسمية أو عامة وليست توصيات مؤكدة حالياً. يختلف توفرها واختصاصها؛ تحقق من العنوان ونطاق الخدمة قبل مشاركة المعلومات. عند خسارة مالية عاجلة، اتصل بالبنك عبر رقم موثوق.",
     countryUS: "الولايات المتحدة", countryCanada: "كندا", countryIndia: "الهند", countryFrance: "فرنسا",
-    countryLinkReport: "أبلغ أو احصل على إرشادات رسمية", countryOrgFtc: "لجنة التجارة الفيدرالية — ReportFraud", countryOrgCafc: "المركز الكندي لمكافحة الاحتيال", countryOrgIndia: "البوابة الوطنية للإبلاغ عن الجرائم الإلكترونية", countryOrgFrance: "Cybermalveillance.gouv.fr",
+    countryUK: "المملكة المتحدة", countryAustralia: "أستراليا", countrySpain: "إسبانيا", countryMexico: "المكسيك",
+    countryPakistan: "باكستان", countryUAE: "الإمارات العربية المتحدة", countryBD: "بنغلاديش",
+    countryLinkReport: "أبلغ أو احصل على إرشادات رسمية", countryOrgFtc: "لجنة التجارة الفيدرالية — ReportFraud", countryOrgCafc: "المركز الكندي لمكافحة الاحتيال", countryOrgIndia: "البوابة الوطنية للإبلاغ عن الجرائم الإلكترونية", countryOrgFrance: "Cybermalveillance.gouv.fr", countryOrgBd: "شرطة بنغلاديش",
     quizEyebrow: "تدرّب على اكتشاف الاحتيال", quizTitle: "اختبار أمان سريع",
     quizIntro: "جرّب ثلاثة مواقف قصيرة. تبقى إجاباتك في جلسة المتصفح هذه.",
     quizStart: "ابدأ الاختبار", quizNext: "السؤال التالي", quizFinish: "اعرض نتيجتي", quizAgain: "حاول مرة أخرى",
@@ -518,9 +545,116 @@ const translations = {
       link: { label: "فتحت رابطاً أو أدخلت بيانات حسابي", steps: ["إذا فتحت الصفحة فقط، فأغلقها ولا تنزّل ملفات أو تدخل مزيداً من المعلومات.", "إذا أدخلت كلمة مرور، فغيّرها عبر التطبيق أو الموقع الرسمي من جهاز موثوق وأمّن الحسابات التي تستخدم فيها الكلمة نفسها.", "إذا شاركت بيانات الدفع أو الهوية، فاتصل بالبنك أو المزود المعني واتبع إرشادات الإبلاغ الرسمية في بلدك."] },
     },
     statusPending: "بانتظار المراجعة", statusVerified: "تم التحقق", statusRejected: "مرفوض", statusEscalated: "تمت الإحالة",
+    appealPrompt: "هل تريد إعادة مراجعة هذا القرار؟",
+    appealLabel: "اشرح ما قد يكون فات (لا تذكر كلمات المرور أو الرموز)",
+    appealSubmit: "طلب مراجعة", appealPending: "يوجد اعتراض قيد المراجعة بالفعل.",
+    appealSuccess: "تم استلام اعتراضك. سيعيد المراجع تقييم البلاغ.",
     errorCategory: "اختر فئة من القائمة.", errorSummary: "أضف مزيداً من التفاصيل (12 حرفاً على الأقل).",
     errorReportNotFound: "لم يُعثر على بلاغ بهذا المرجع.", errorNetwork: "تعذر الاتصال بالخادم. تحقق من الاتصال.",
   },
+};
+
+translations.bn = {
+  ...translations.en,
+  pageTitle: "ClearBeacon — থামুন, যাচাই করুন, সুরক্ষিত থাকুন",
+  languageSelectLabel: "ভাষা নির্বাচন করুন",
+  skipLink: "মূল বিষয়বস্তুতে যান",
+  mainNavigation: "প্রধান নেভিগেশন",
+  navCheck: "বার্তা যাচাই",
+  navGuides: "নিরাপত্তা নির্দেশিকা",
+  navSafetyCenter: "নিরাপত্তা সরঞ্জাম",
+  navReport: "প্রতারণার প্রতিবেদন",
+  heroEyebrow: "শান্তভাবে যাচাই করুন",
+  heroLineOne: "বার্তাটি কি সন্দেহজনক মনে হচ্ছে?",
+  heroLineTwo: "চলুন ভালো করে দেখি।",
+  heroText: "সন্দেহজনক লিংক বা বার্তা যাচাই করুন, সতর্কতার লক্ষণ বুঝুন এবং নিরাপদ পরবর্তী পদক্ষেপ বেছে নিন।",
+  heroCta: "দ্রুত যাচাই শুরু করুন",
+  privacyPill: "গোপনীয়তা আগে · অ্যাকাউন্ট লাগবে না",
+  quickCheck: "দ্রুত যাচাই",
+  checkerHeading: "আপনি কী যাচাই করতে চান?",
+  tabUrl: "লিংক",
+  tabMessage: "বার্তা",
+  urlLabel: "যাচাইয়ের জন্য ওয়েব ঠিকানাটি পেস্ট করুন",
+  checkLink: "লিংক যাচাই",
+  urlPrivacy: "আমরা লিংক খুলি না। ব্যক্তিগত তথ্য বা গোপন টোকেনসহ লিংক দেবেন না।",
+  messageLabel: "সন্দেহজনক বার্তাটি পেস্ট করুন",
+  messagePrivacy: "বার্তা মেমরিতে বিশ্লেষণ করা হয়; সংরক্ষণ বা বাইরের সেবায় পাঠানো হয় না।",
+  checkMessage: "বার্তা যাচাই",
+  finePrint: "ClearBeacon একটি স্বাধীন শিক্ষামূলক সহায়ক; এটি সরকারি সেবা বা নিরাপত্তার নিশ্চয়তা নয়।",
+  guidesEyebrow: "নিরাপত্তার কিছু সহজ অভ্যাস",
+  guidesTitle: "এই পরামর্শগুলো মনে রাখুন।",
+  guideSearchLabel: "নিরাপত্তা নির্দেশিকা খুঁজুন",
+  guideSearchPlaceholder: "নিরাপত্তা নির্দেশিকা খুঁজুন",
+  guideFilters: "নির্দেশিকা বাছাই",
+  guideAll: "সব",
+  guideAccount: "অ্যাকাউন্ট ও কোড",
+  guidePayments: "পেমেন্ট ও চাকরি",
+  guideShopping: "কেনাকাটা ও লিংক",
+  reportTitle: "সন্দেহজনক ঘটনার প্রতিবেদন দিন।",
+  reportIntro: "প্রতিবেদন ব্যক্তিগত থাকে এবং পর্যালোচনার অপেক্ষায় থাকে; যাচাই ছাড়া প্রকাশ করা হয় না।",
+  reportPrivacy: "OTP, পাসওয়ার্ড বা পরিচয়সংক্রান্ত ব্যক্তিগত তথ্য দেবেন না।",
+  reportCategoryLabel: "কী ধরনের প্রতারণা?",
+  reportSubmit: "ব্যক্তিগত প্রতিবেদন পাঠান",
+  categoryChoose: "একটি ধরন বেছে নিন",
+  categoryJob: "চাকরি বা আয়ের প্রস্তাব",
+  categoryPayment: "পেমেন্ট বা ডেলিভারির অনুরোধ",
+  statusTitle: "প্রতিবেদনের অবস্থা দেখুন",
+  statusText: "প্রতিবেদন দেওয়ার পর পাওয়া ব্যক্তিগত রেফারেন্স লিখুন।",
+  statusLabel: "ব্যক্তিগত প্রতিবেদন রেফারেন্স",
+  statusSubmit: "অবস্থা দেখুন",
+  statusPending: "পর্যালোচনার অপেক্ষায়",
+  statusVerified: "যাচাইকৃত",
+  statusRejected: "গ্রহণ করা হয়নি",
+  statusEscalated: "এগিয়ে পাঠানো হয়েছে",
+  appealPrompt: "এই সিদ্ধান্তটি কি আবার পর্যালোচনা করতে চান?",
+  appealLabel: "কী বাদ পড়েছে ব্যাখ্যা করুন (পাসওয়ার্ড বা কোড দেবেন না)",
+  appealSubmit: "পুনরায় পর্যালোচনা চান",
+  appealPending: "আপনার আপিলটি পর্যালোচনার অপেক্ষায় আছে।",
+  appealSuccess: "আপিল পাওয়া গেছে। একজন পর্যালোচক প্রতিবেদনটি আবার দেখবেন।",
+  riskHigh: "উচ্চ ঝুঁকির লক্ষণ",
+  riskCaution: "থামুন এবং যাচাই করুন",
+  riskUnknown: "নিশ্চিতভাবে বলা যাচ্ছে না",
+  resultEvidence: "যে বিষয়গুলো নজরে এসেছে",
+  resultNext: "নিরাপদ পরবর্তী পদক্ষেপ",
+  resultLinks: "পাওয়া লিংক (খোলা হয়নি):",
+  resultDisclaimer: "কোনো ফলাফলই নিরাপদ হওয়ার নিশ্চয়তা দিতে পারে না।",
+  historyTitle: "সাম্প্রতিক যাচাই",
+  historyClear: "ইতিহাস মুছুন",
+  historyEmpty: "এখনও কোনো যাচাই সংরক্ষিত নেই।",
+  safetyCenterTitle: "সহায়তা নিন এবং নিরাপদ অভ্যাস গড়ুন।",
+  responseTitle: "এখন কী করবেন?",
+  responseScenarioLabel: "কী ঘটেছে বেছে নিন",
+  responseScenarioCode: "আমি একবারের কোড বা পাসওয়ার্ড দিয়েছি",
+  responseScenarioPayment: "আমি টাকা পাঠিয়েছি বা ফি দিয়েছি",
+  responseScenarioDevice: "আমি অ্যাপ ইনস্টল করেছি বা ডিভাইসের অনুমতি দিয়েছি",
+  responseScenarioLink: "আমি লিংক খুলেছি বা অ্যাকাউন্টের তথ্য দিয়েছি",
+  countryBD: "বাংলাদেশ",
+  countryOrgBd: "বাংলাদেশ পুলিশ",
+  countryUK: "যুক্তরাজ্য",
+  countryAustralia: "অস্ট্রেলিয়া",
+  countrySpain: "স্পেন",
+  countryMexico: "মেক্সিকো",
+  countryPakistan: "পাকিস্তান",
+  countryUAE: "সংযুক্ত আরব আমিরাত",
+  feedbackTitle: "এই যাচাইটি উন্নত করতে সাহায্য করুন",
+  feedbackLabel: "কী ভুল বা অসম্পূর্ণ হতে পারে? যাচাই করা মূল লেখা সংরক্ষণ করা হয় না।",
+  feedbackSubmit: "ব্যক্তিগত মতামত পাঠান",
+  feedbackReceived: "ধন্যবাদ। মতামতটি ব্যক্তিগত পর্যালোচনা তালিকায় পাঠানো হয়েছে।",
+  imageNoSupport: "এই ব্রাউজারে স্থানীয় QR বা লেখা শনাক্তকরণ নেই। ছবিটি আপলোড করা হয়নি।",
+  imageNoContent: "QR কোড বা পড়ার মতো লেখা পাওয়া যায়নি। কিছুই আপলোড করা হয়নি।",
+  imageFoundUrl: "QR কোড পাওয়া গেছে। লিংকটি খোলা হয়নি; লিংক যাচাই ঘরে দেওয়া হয়েছে।",
+  imageFoundText: "লেখা এই ডিভাইসে শনাক্ত করে বার্তা যাচাই ঘরে দেওয়া হয়েছে। পাঠানোর আগে পড়ে নিন।",
+  deleteReport: "আমার প্রতিবেদন ও আপিল মুছুন",
+  deleteConfirm: "এই প্রতিবেদন, আপিল এবং পর্যালোচনা ইতিহাস স্থায়ীভাবে মুছবেন?",
+  reportDeleted: "আপনার প্রতিবেদন এবং সংশ্লিষ্ট তথ্য মুছে ফেলা হয়েছে।",
+  countryHelpNote: "এগুলো সরকারি বা জনসেবামূলক সাইটের রেফারেন্স লিংক; বর্তমান কার্যকারিতা সরাসরি যাচাই করা হয়নি। তথ্য দেওয়ার আগে ঠিকানা ও সেবার আওতা যাচাই করুন। জরুরি আর্থিক ক্ষতির ক্ষেত্রে আগে থেকে জানা নম্বর বা অফিসিয়াল অ্যাপ দিয়ে ব্যাংকে যোগাযোগ করুন।",
+  plannerScenarios: {
+    code: { label: "আমি একবারের কোড বা পাসওয়ার্ড দিয়েছি", steps: ["অফিসিয়াল অ্যাপ বা আগে থেকে জানা নম্বরে ব্যাংক/সেবাদাতাকে দ্রুত জানান।", "অফিসিয়াল ওয়েবসাইটে পাসওয়ার্ড বদলান এবং অচেনা সেশন বন্ধ করুন।", "ফোনের সেবা হঠাৎ বন্ধ হলে মোবাইল অপারেটরকে জানান। আর কোনো কোড দেবেন না।"] },
+    payment: { label: "আমি টাকা পাঠিয়েছি বা ফি দিয়েছি", steps: ["কার্ডের পেছনের নম্বর বা অফিসিয়াল অ্যাপ দিয়ে ব্যাংক/পেমেন্ট সেবাদাতাকে দ্রুত জানান।", "রসিদ, বার্তা এবং লেনদেনের রেফারেন্স সংরক্ষণ করুন।", "টাকা ফেরত দেওয়ার নামে কেউ অগ্রিম টাকা চাইলে দেবেন না।"] },
+    device: { label: "আমি অ্যাপ ইনস্টল করেছি বা ডিভাইসের অনুমতি দিয়েছি", steps: ["ডিভাইসটি কারও নিয়ন্ত্রণে থাকলে ইন্টারনেট সংযোগ বিচ্ছিন্ন করুন।", "অন্য বিশ্বস্ত ডিভাইস দিয়ে ব্যাংকে যোগাযোগ করুন এবং গুরুত্বপূর্ণ পাসওয়ার্ড বদলান।", "বিশ্বস্ত প্রযুক্তিবিদের সাহায্যে ডিভাইস পরীক্ষা করান।"] },
+    link: { label: "আমি লিংক খুলেছি বা অ্যাকাউন্টের তথ্য দিয়েছি", steps: ["শুধু পাতা খুলে থাকলে সেটি বন্ধ করুন; কিছু ডাউনলোড বা জমা দেবেন না।", "পাসওয়ার্ড দিলে অফিসিয়াল অ্যাপ/সাইট থেকে বদলান।", "পেমেন্ট বা পরিচয় তথ্য দিলে সংশ্লিষ্ট ব্যাংক বা সেবাদাতাকে জানান।"] },
+  },
+  categoryNames: { all: "সব", account: "অ্যাকাউন্ট ও কোড", payments: "পেমেন্ট ও চাকরি", shopping: "কেনাকাটা ও লিংক" },
 };
 
 const guideData = [
@@ -556,6 +690,26 @@ const guideData = [
     ["Contact your bank or payment provider through its official app or known number.","অফিসিয়াল অ্যাপ বা জানা নম্বরে ব্যাংক/পেমেন্ট সেবাদাতাকে জানান।"],
     ["Change the affected password; sign out other sessions if the service supports it.","আক্রান্ত পাসওয়ার্ড বদলান; সুবিধা থাকলে অন্য সেশনগুলো থেকে সাইন আউট করুন।"],
     ["Save messages and transaction references. Do not delete evidence or send more money.","বার্তা ও লেনদেনের রেফারেন্স রাখুন। প্রমাণ মুছবেন না বা আরও টাকা দেবেন না।"]]},
+  {category:"payments",icon:"💬",title:["Romance and relationship requests","সম্পর্কের নামে অর্থ চাওয়া"],summary:["A new online relationship that quickly asks for money, secrecy, or investment deserves an independent pause.","অনলাইনে নতুন পরিচয় দ্রুত টাকা, গোপনীয়তা বা বিনিয়োগ চাইলে থেমে আলাদাভাবে যাচাই করুন।"],steps:[
+    ["Do not send money or identity documents to someone you have not independently verified.","আলাদাভাবে যাচাই করেননি এমন কাউকে টাকা বা পরিচয়পত্র দেবেন না।"],
+    ["Be wary of urgent emergencies, secrecy, and requests to move conversations off-platform.","জরুরি বিপদ, গোপন রাখতে বলা, বা প্ল্যাটফর্মের বাইরে কথা বলার অনুরোধে সতর্ক থাকুন।"],
+    ["Talk with someone you trust before making a financial decision.","আর্থিক সিদ্ধান্তের আগে বিশ্বস্ত কারও সঙ্গে আলোচনা করুন।"]]},
+  {category:"payments",icon:"📈",title:["Investment and high-return claims","বিনিয়োগ ও বেশি লাভের দাবি"],summary:["Guaranteed returns and pressure to add funds are warning signs, not proof by themselves.","নিশ্চিত লাভের প্রতিশ্রুতি ও আরও টাকা দেওয়ার চাপ সতর্কতার লক্ষণ, তবে একা প্রমাণ নয়।"],steps:[
+    ["Check the regulator's official register using contact details you find yourself.","নিজে খুঁজে পাওয়া তথ্য দিয়ে নিয়ন্ত্রকের অফিসিয়াল তালিকা যাচাই করুন।"],
+    ["Do not trust screenshots of profits or pay a fee to withdraw supposed earnings.","লাভের স্ক্রিনশট বিশ্বাস করবেন না বা কথিত আয় তুলতে ফি দেবেন না।"],
+    ["Pause before transfers, especially cryptocurrency or other hard-to-reverse payments.","টাকা পাঠানোর আগে থামুন; বিশেষ করে ফেরত পাওয়া কঠিন এমন পেমেন্টে।"]]},
+  {category:"account",icon:"🛠️",title:["Unexpected tech-support warnings","অপ্রত্যাশিত প্রযুক্তি-সহায়তার সতর্কতা"],summary:["Pop-ups and unsolicited callers may pressure you to install remote-control software or pay for a fake repair.","পপ-আপ বা অযাচিত কলার রিমোট-অ্যাক্সেস সফটওয়্যার ইনস্টল বা ভুয়া মেরামতের টাকা দিতে চাপ দিতে পারে।"],steps:[
+    ["Do not call a number shown in an unexpected pop-up or give anyone remote access.","অপ্রত্যাশিত পপ-আপের নম্বরে কল বা কাউকে রিমোট অ্যাক্সেস দেবেন না।"],
+    ["Close the page or browser; use the device maker's official support site if help is needed.","পাতা বা ব্রাউজার বন্ধ করুন; সাহায্য লাগলে নির্মাতার অফিসিয়াল সাপোর্ট দেখুন।"],
+    ["If access was granted, disconnect from the network and contact your bank from another device.","অ্যাক্সেস দিয়ে থাকলে নেটওয়ার্ক বিচ্ছিন্ন করে অন্য ডিভাইস থেকে ব্যাংকে যোগাযোগ করুন।"]]},
+  {category:"shopping",icon:"📦",title:["Delivery and parcel payment messages","ডেলিভারি ও পার্সেল পেমেন্ট বার্তা"],summary:["Unexpected delivery links may be used to collect card details or account passwords.","অপ্রত্যাশিত ডেলিভারি লিংক দিয়ে কার্ডের তথ্য বা অ্যাকাউন্টের পাসওয়ার্ড নেওয়ার চেষ্টা হতে পারে।"],steps:[
+    ["Check tracking by typing the courier's known address or using its official app.","কুরিয়ারের পরিচিত ঠিকানা নিজে লিখে বা অফিসিয়াল অ্যাপে ট্র্যাকিং যাচাই করুন।"],
+    ["Do not pay a small unexpected fee through a text-message link.","টেক্সটের লিংকে অপ্রত্যাশিত ছোট ফি দেবেন না।"],
+    ["Contact the seller or courier through independently verified details.","আলাদাভাবে যাচাই করা তথ্য দিয়ে বিক্রেতা বা কুরিয়ারের সঙ্গে যোগাযোগ করুন।"]]},
+  {category:"account",icon:"🏢",title:["Organization impersonation","প্রতিষ্ঠানের পরিচয় নকল"],summary:["A familiar logo or caller ID does not prove that a message came from the real organization.","পরিচিত লোগো বা কলার আইডি থাকলেই বার্তাটি আসল প্রতিষ্ঠান থেকে এসেছে প্রমাণ হয় না।"],steps:[
+    ["Inspect the complete sender address and domain, not just the display name.","শুধু প্রদর্শিত নাম নয়, প্রেরকের সম্পূর্ণ ঠিকানা ও ডোমেইন দেখুন।"],
+    ["Open the official app or type a known address yourself to verify the request.","অনুরোধ যাচাই করতে অফিসিয়াল অ্যাপ খুলুন বা পরিচিত ঠিকানা নিজে লিখুন।"],
+    ["Do not share codes, passwords, or payment details in response to an unexpected contact.","অপ্রত্যাশিত যোগাযোগে কোড, পাসওয়ার্ড বা পেমেন্ট তথ্য দেবেন না।"]]},
 ];
 
 const guideCopy = {
@@ -568,6 +722,11 @@ const guideCopy = {
     ["Revisa un enlace sin abrirlo","El nombre visible de una marca puede ocultar otro destino; los enlaces cortos ocultan a dónde llevan."],
     ["Desconfía de los premios inesperados","Si piden dinero o datos bancarios para entregar un premio, detente y verifica."],
     ["Si ya pagaste o compartiste un código","Actuar pronto y con calma puede reducir más pérdidas. Guarda pruebas y contacta con tu proveedor."],
+    ["Solicitudes románticas de dinero","Una relación nueva que pide dinero, secreto o inversiones merece una pausa y una verificación independiente."],
+    ["Promesas de inversión y grandes ganancias","Los rendimientos garantizados y la presión para ingresar más fondos son señales para verificar."],
+    ["Alertas inesperadas de soporte técnico","No instales software de control remoto ni pagues por supuestas reparaciones tras una llamada o ventana emergente inesperada."],
+    ["Mensajes de entrega y paquetes","Verifica el seguimiento en la aplicación o sitio oficial del transportista; no uses enlaces inesperados para pagar."],
+    ["Suplantación de organizaciones","Un logotipo o identificador de llamada conocido no demuestra que el contacto sea auténtico."],
   ],
   fr: [
     ["Ne partagez jamais un OTP ou un code PIN","Votre banque et un service d'assistance légitime n'ont pas besoin de votre code à usage unique."],
@@ -578,6 +737,11 @@ const guideCopy = {
     ["Examinez un lien sans l'ouvrir","Une marque affichée peut masquer une autre destination ; les liens courts cachent leur cible."],
     ["Méfiez-vous des prix inattendus","Si des frais ou des coordonnées bancaires sont demandés, arrêtez-vous et vérifiez."],
     ["Si vous avez déjà payé ou partagé un code","Agir vite et calmement peut limiter les pertes. Gardez les preuves et contactez votre prestataire."],
+    ["Demandes d'argent dans une relation","Une nouvelle relation en ligne qui demande de l'argent, le secret ou un investissement mérite une vérification indépendante."],
+    ["Promesses d'investissement et de rendement","Des gains garantis et la pression pour ajouter des fonds sont des signaux à vérifier."],
+    ["Alertes inattendues du support technique","N'installez pas de contrôle à distance et ne payez pas après un appel ou une fenêtre imprévue."],
+    ["Messages de livraison et de colis","Vérifiez le suivi sur le site ou l'application officielle du transporteur, sans utiliser un lien inattendu."],
+    ["Usurpation d'identité d'une organisation","Un logo ou un identifiant d'appel familier ne prouve pas l'authenticité du contact."],
   ],
   hi: [
     ["OTP या PIN कभी साझा न करें","भुगतान वापस करने या खाता सुरक्षित करने के लिए आपके बैंक को एक बार का कोड नहीं चाहिए।"],
@@ -588,6 +752,11 @@ const guideCopy = {
     ["लिंक खोले बिना उसकी जाँच करें","दिख रहा ब्रांड नाम अलग गंतव्य छिपा सकता है; छोटे लिंक असली पता छिपाते हैं।"],
     ["अप्रत्याशित इनाम से सावधान रहें","इनाम देने के लिए शुल्क या बैंक विवरण माँगें तो रुकें और पुष्टि करें।"],
     ["यदि आपने पैसे दिए या कोड साझा किया","जल्दी और शांत कदम से आगे का नुकसान कम हो सकता है। सबूत रखें और सेवा प्रदाता से संपर्क करें।"],
+    ["रिश्ते के नाम पर पैसे माँगना","नया ऑनलाइन संबंध जल्दी पैसे, गोपनीयता या निवेश माँगे तो स्वतंत्र रूप से पुष्टि करें।"],
+    ["निवेश और अधिक लाभ के वादे","गारंटीकृत लाभ और और पैसे जमा करने का दबाव जाँचने के संकेत हैं।"],
+    ["अचानक तकनीकी सहायता की चेतावनी","अचानक आए कॉल या पॉप-अप पर रिमोट कंट्रोल ऐप न लगाएँ और पैसे न दें।"],
+    ["डिलीवरी और पार्सल के संदेश","कूरियर की आधिकारिक ऐप या साइट पर ट्रैक करें; अनजान लिंक से भुगतान न करें।"],
+    ["संस्था की नकल","पहचाना हुआ लोगो या कॉलर आईडी संदेश की असलियत साबित नहीं करता।"],
   ],
   ar: [
     ["لا تشارك رمز OTP أو PIN أبداً","لا يحتاج البنك أو فريق الدعم الحقيقي إلى رمزك لمرة واحدة لإلغاء دفعة أو حماية حسابك."],
@@ -598,6 +767,11 @@ const guideCopy = {
     ["افحص الرابط من دون فتحه","قد يخفي اسم العلامة التجارية وجهة مختلفة؛ كما تخفي الروابط المختصرة وجهتها."],
     ["توخ الحذر من الجوائز غير المتوقعة","إذا طُلبت رسوم أو بيانات مصرفية لاستلام جائزة، فتوقف وتحقق."],
     ["إذا أرسلت المال أو شاركت رمزاً","قد يقلل التصرف السريع والهادئ من الخسائر. احتفظ بالأدلة واتصل بمزود الخدمة."],
+    ["طلبات المال باسم علاقة عاطفية","العلاقة الجديدة التي تطلب المال أو السرية أو الاستثمار تستحق التحقق المستقل."],
+    ["وعود الاستثمار والأرباح المرتفعة","الأرباح المضمونة والضغط لإضافة أموال إشارات تستدعي التحقق."],
+    ["تحذيرات دعم فني غير متوقعة","لا تثبت برنامج تحكم عن بعد ولا تدفع بعد مكالمة أو نافذة منبثقة غير متوقعة."],
+    ["رسائل التوصيل والطرود","تحقق من التتبع عبر التطبيق أو الموقع الرسمي لشركة الشحن، لا عبر رابط مفاجئ."],
+    ["انتحال صفة المؤسسات","الشعار أو هوية المتصل المألوفة لا تثبت أن الرسالة أصلية."],
   ],
 };
 
@@ -609,6 +783,11 @@ guideData.forEach((guide, index) => {
 });
 
 const guideSteps = {
+  bn: {
+    account: ["ফোন বা চ্যাট বন্ধ করুন; কোড কাউকে দেবেন না।", "নিজে অফিসিয়াল অ্যাপ খুলে সাম্প্রতিক কার্যক্রম দেখুন।", "কোড দিয়ে থাকলে বিশ্বস্ত নম্বরে ব্যাংক বা সেবাদাতাকে দ্রুত জানান।"],
+    payments: ["থামুন এবং আলাদা অফিসিয়াল মাধ্যমে অনুরোধটি যাচাই করুন।", "আগে থেকে জানা নম্বরে যোগাযোগ করুন; কলার আইডি বিশ্বাস করবেন না।", "চাকরি, পুরস্কার বা কথিত অর্থ পেতে টাকা দেবেন না।"],
+    shopping: ["দোকানের নাম ও সম্পূর্ণ ঠিকানা খুঁজে অভিযোগ আছে কি না দেখুন।", "ফেরত নীতি, যোগাযোগের তথ্য এবং কে টাকা পাচ্ছে যাচাই করুন।", "বিক্রেতাকে যাচাই করতে না পারলে ফেরত পাওয়া যায় না এমন পেমেন্ট এড়িয়ে চলুন।"],
+  },
   es: {
     account: ["Cierra la llamada o el chat. Nunca compartas el código.", "Abre tú mismo la aplicación oficial y revisa la actividad.", "Si ya compartiste el código, contacta de inmediato con tu banco o proveedor."],
     payments: ["Detente y confirma la solicitud por un canal oficial independiente.", "Contacta con un número conocido; no confíes en el identificador de llamada.", "No pagues para desbloquear un empleo, premio o supuesto saldo."],
@@ -636,6 +815,30 @@ const countryHelp = {
     label: "countryUS",
     links: [{ label: "countryOrgFtc", url: "https://reportfraud.ftc.gov/" }],
   },
+  uk: {
+    label: "countryUK",
+    links: [{ label: "GOV.UK — Report internet scams and phishing", url: "https://www.gov.uk/report-suspicious-emails-websites-phishing" }],
+  },
+  australia: {
+    label: "countryAustralia",
+    links: [{ label: "Scamwatch — Australian Competition and Consumer Commission", url: "https://www.scamwatch.gov.au/report-a-scam" }],
+  },
+  spain: {
+    label: "countrySpain",
+    links: [{ label: "INCIBE — Instituto Nacional de Ciberseguridad", url: "https://www.incibe.es/" }],
+  },
+  mexico: {
+    label: "countryMexico",
+    links: [{ label: "CERT-MX — Guardia Nacional", url: "https://www.gob.mx/gncertmx" }],
+  },
+  pakistan: {
+    label: "countryPakistan",
+    links: [{ label: "National Cyber Crime Investigation Agency (NCCIA)", url: "https://complaint.nccia.gov.pk/" }],
+  },
+  uae: {
+    label: "countryUAE",
+    links: [{ label: "UAE Ministry of Interior — Report Cybercrimes", url: "https://www.moi.gov.ae/en/eservices/submit-cyber-crimes.aspx" }],
+  },
   canada: {
     label: "countryCanada",
     links: [{ label: "countryOrgCafc", url: "https://antifraudcentre-centreantifraude.ca/report-signalez-eng.htm" }],
@@ -647,6 +850,10 @@ const countryHelp = {
   france: {
     label: "countryFrance",
     links: [{ label: "countryOrgFrance", url: "https://www.cybermalveillance.gouv.fr/" }],
+  },
+  bangladesh: {
+    label: "countryBD",
+    links: [{ label: "countryOrgBd", url: "https://www.police.gov.bd/en" }],
   },
 };
 
@@ -678,6 +885,12 @@ const quizQuestions = {
   ],
 };
 
+quizQuestions.bn = [
+  { prompt: "ব্যাংকের পরিচয় দিয়ে কেউ ফোনে একবারের কোড চাইলে কী করবেন?", choices: ["কোডটি বলে দেবেন।", "কল কেটে অফিসিয়াল অ্যাপ বা জানা নম্বরে ব্যাংকে যোগাযোগ করবেন।", "অ্যাকাউন্ট নম্বর জানে কি না জিজ্ঞাসা করবেন।"], answer: 1, explanation: "একবারের কোড দিয়ে অ্যাকাউন্ট বা পেমেন্ট অনুমোদন করা যেতে পারে।" },
+  { prompt: "চাকরি শুরুর আগে নিয়োগদাতা ফেরতযোগ্য নিবন্ধন ফি চাইলে কী করবেন?", choices: ["চিঠি অফিসিয়াল দেখালে টাকা দেবেন।", "চাকরিটি আলাদাভাবে যাচাই করবেন এবং কাজ পেতে টাকা দেবেন না।", "আগে অল্প টাকা পাঠাবেন।"], answer: 1, explanation: "চাকরি পাওয়ার জন্য আগাম ফি চাওয়া সতর্কতার লক্ষণ।" },
+  { prompt: "অচেনা বার্তার লিংকে পাসওয়ার্ড দিলে এরপর কী করবেন?", choices: ["বিশ্বস্ত ডিভাইস থেকে অফিসিয়াল সাইটে পাসওয়ার্ড বদলাবেন।", "অপেক্ষা করবেন।", "বার্তাটির উত্তর দিয়ে জিজ্ঞাসা করবেন।"], answer: 0, explanation: "বার্তার লিংক নয়, অফিসিয়াল অ্যাপ বা সাইট ব্যবহার করুন।" },
+];
+
 let quizIndex = -1;
 let quizScore = 0;
 let quizAnswered = false;
@@ -694,6 +907,7 @@ function t(key) {
 
 const localeSettings = {
   en: { index: 0, date: "en" },
+  bn: { index: 1, date: "bn-BD" },
   es: { index: 2, date: "es-ES" }, fr: { index: 3, date: "fr-FR" },
   hi: { index: 4, date: "hi-IN" }, ar: { index: 5, date: "ar" },
 };
@@ -988,8 +1202,7 @@ function renderGuides() {
 }
 
 async function request(path, options = {}) {
-  const apiBase = window.SCAMSHIELD_API_BASE_URL || "";
-  const response = await fetch(`${apiBase}${path}`, {
+  const response = await fetch(path, {
     ...options,
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
   });
@@ -1010,38 +1223,20 @@ function renderResult(result) {
   lastResult = result;
   target.dataset.risk = result.risk_label;
   target.replaceChildren();
-
   const header = document.createElement("div");
   header.className = "result-head";
   const icon = document.createElement("span");
   icon.className = "result-icon";
   icon.setAttribute("aria-hidden", "true");
   icon.textContent = result.risk_label === "high_risk" || result.risk_label === "caution" ? "!" : "i";
-
   const heading = document.createElement("div");
-  heading.className = "result-heading";
   const title = document.createElement("h3");
-  title.textContent = result.title || t(names[result.risk_label] || "riskUnknown");
+  title.textContent = t(names[result.risk_label] || "riskUnknown");
   const intro = document.createElement("p");
   intro.textContent = result.risk_label === "unknown"
     ? t("resultUnknown")
     : t("resultRisk");
-
-  const scoreWrap = document.createElement("div");
-  scoreWrap.className = "result-score-wrap";
-  const scoreBadge = document.createElement("span");
-  scoreBadge.className = "result-score-badge";
-  const scoreValue = Number.isFinite(result.score) ? Math.min(Math.max(Number(result.score), 0), 100) : 0;
-  scoreBadge.textContent = `${scoreValue}/100`;
-  const meter = document.createElement("div");
-  meter.className = "result-score-meter";
-  const meterFill = document.createElement("span");
-  meterFill.className = "result-score-fill";
-  meterFill.style.width = `${scoreValue}%`;
-  meter.append(meterFill);
-  scoreWrap.append(scoreBadge, meter);
-
-  heading.append(title, intro, scoreWrap);
+  heading.append(title, intro);
   header.append(icon, heading);
   target.append(header);
 
@@ -1082,12 +1277,89 @@ function renderResult(result) {
 
   const coverage = document.createElement("p");
   coverage.className = "coverage";
-  coverage.textContent = t("resultCoverage");
+  const threatCheck = result.coverage?.find((item) => item.check === "threat_intelligence");
+  const threatStatus = threatCheck?.status || "not_configured";
+  coverage.textContent = `${t("resultCoverage")} · Threat-list status: ${threatStatus}${threatCheck?.provider ? ` (${threatCheck.provider})` : ""}${threatCheck?.updated_at ? ` · Updated ${threatCheck.updated_at}` : ""}`;
   target.append(coverage);
   const disclaimer = document.createElement("p");
   disclaimer.className = "result-disclaimer";
   disclaimer.textContent = result.disclaimer || t("resultDisclaimer");
   target.append(disclaimer);
+  if (lastCheckInput) {
+    const feedbackForm = document.createElement("form");
+    feedbackForm.className = "result-feedback-form";
+    const feedbackHeading = document.createElement("h4");
+    feedbackHeading.textContent = t("feedbackTitle");
+    const feedbackLabel = document.createElement("label");
+    const details = document.createElement("textarea");
+    const detailsId = "result-feedback-details";
+    feedbackLabel.htmlFor = detailsId;
+    feedbackLabel.textContent = t("feedbackLabel");
+    details.id = detailsId;
+    details.rows = 2;
+    details.maxLength = 1000;
+    details.required = true;
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.className = "secondary-button";
+    submit.textContent = t("feedbackSubmit");
+    const feedback = document.createElement("div");
+    feedback.className = "feedback";
+    feedback.hidden = true;
+    feedback.setAttribute("role", "status");
+    const feedbackStatusButton = document.createElement("button");
+    feedbackStatusButton.type = "button";
+    feedbackStatusButton.className = "secondary-button";
+    feedbackStatusButton.textContent = "Check feedback review status";
+    feedbackStatusButton.hidden = true;
+    let feedbackReference = "";
+    feedbackStatusButton.addEventListener("click", async () => {
+      try {
+        const status = await request("/api/feedback/status", {
+          method: "POST",
+          body: JSON.stringify({ reference: feedbackReference }),
+        });
+        setFeedback(
+          feedback,
+          status.status === "reviewed" ? "Your feedback has been reviewed." : "Your feedback is still awaiting review.",
+          "success",
+        );
+        const referenceText = document.createElement("p");
+        referenceText.textContent = `Private feedback reference: ${feedbackReference}`;
+        feedback.append(referenceText);
+      } catch (error) {
+        setFeedback(feedback, readableError(error), "error");
+      }
+    });
+    feedbackForm.append(feedbackHeading, feedbackLabel, details, submit, feedback, feedbackStatusButton);
+    feedbackForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      submit.disabled = true;
+      try {
+        const received = await request("/api/feedback", {
+          method: "POST",
+          body: JSON.stringify({
+            input_type: lastCheckInput.type,
+            input: lastCheckInput.value,
+            risk_label: result.risk_label,
+            details: details.value.trim(),
+            locale: currentLocale,
+          }),
+        });
+        setFeedback(feedback, t("feedbackReceived"), "success");
+        feedbackReference = received.reference;
+        const referenceText = document.createElement("p");
+        referenceText.textContent = `Save this private feedback reference to check review status: ${feedbackReference}`;
+        feedback.append(referenceText);
+        feedbackStatusButton.hidden = false;
+        details.disabled = true;
+      } catch (error) {
+        setFeedback(feedback, readableError(error), "error");
+        submit.disabled = false;
+      }
+    });
+    target.append(feedbackForm);
+  }
   target.hidden = false;
   target.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -1225,202 +1497,41 @@ function readableError(error) {
 
 function setupTabs() {
   const tabs = $$(".tab");
+  const selectTab = (tab, moveFocus = false) => {
+    for (const other of tabs) {
+      const selected = other === tab;
+      other.classList.toggle("active", selected);
+      other.setAttribute("aria-selected", String(selected));
+      other.tabIndex = selected ? 0 : -1;
+      $(`#${other.getAttribute("aria-controls")}`).hidden = !selected;
+    }
+    $("#check-feedback").hidden = true;
+    $("#result").hidden = true;
+    if (moveFocus) tab.focus();
+  };
+
   for (const tab of tabs) {
-    tab.addEventListener("click", () => {
-      for (const other of tabs) {
-        const selected = other === tab;
-        other.classList.toggle("active", selected);
-        other.setAttribute("aria-selected", String(selected));
-        $(`#${other.getAttribute("aria-controls")}`).hidden = !selected;
+    tab.tabIndex = tab.getAttribute("aria-selected") === "true" ? 0 : -1;
+    tab.addEventListener("click", () => selectTab(tab));
+    tab.addEventListener("keydown", (event) => {
+      const index = tabs.indexOf(tab);
+      const isRtl = document.documentElement.dir === "rtl";
+      let nextIndex = index;
+      if (event.key === "Home") {
+        nextIndex = 0;
+      } else if (event.key === "End") {
+        nextIndex = tabs.length - 1;
+      } else if (event.key === "ArrowRight") {
+        nextIndex = (index + (isRtl ? -1 : 1) + tabs.length) % tabs.length;
+      } else if (event.key === "ArrowLeft") {
+        nextIndex = (index + (isRtl ? 1 : -1) + tabs.length) % tabs.length;
+      } else {
+        return;
       }
-      $("#check-feedback").hidden = true;
-      $("#result").hidden = true;
+      event.preventDefault();
+      selectTab(tabs[nextIndex], true);
     });
   }
-}
-
-function setupScreenshotForm() {
-  const form = $("#screenshot-form");
-  const fileInput = $("#screenshot-file");
-  const previewWrap = $("#screenshot-preview-wrap");
-  const preview = $("#screenshot-preview");
-  const textInput = $("#screenshot-text");
-  const feedback = $("#check-feedback");
-
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setFeedback(feedback, "Please choose an image file for the screenshot check.", "error");
-      return;
-    }
-    previewWrap.hidden = false;
-    preview.src = URL.createObjectURL(file);
-    if (window.Tesseract) {
-      try {
-        const result = await window.Tesseract.recognize(file, "eng");
-        if (result?.data?.text) {
-          textInput.value = result.data.text.trim();
-          setFeedback(feedback, "Screenshot text captured. Review it before analyzing.", "success");
-        }
-      } catch {
-        setFeedback(feedback, "OCR could not read the screenshot. Paste the text manually instead.", "error");
-      }
-    }
-  });
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const result = $("#result");
-    const button = $("button[type=submit]", form);
-    result.hidden = true;
-    setFeedback(feedback, t("checking"), "");
-    button.disabled = true;
-    try {
-      const payload = await request("/api/check/screenshot", {
-        method: "POST",
-        body: JSON.stringify({ text: textInput.value.trim(), locale: currentLocale }),
-      });
-      feedback.hidden = true;
-      renderResult(payload);
-      saveCheckHistory(payload, "message");
-    } catch (error) {
-      setFeedback(feedback, readableError(error), "error");
-    } finally {
-      button.disabled = false;
-    }
-  });
-}
-
-function isLikelyUrl(value) {
-  const text = value.trim();
-  return /^https?:\/\//i.test(text) || /^www\./i.test(text) || /^[a-z0-9.-]+\.[a-z]{2,}(?:\/.*)?$/i.test(text);
-}
-
-function decodeQrFromImage(file) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        if (!context) {
-          reject(new Error("Could not decode QR image."));
-          return;
-        }
-        canvas.width = image.naturalWidth || image.width;
-        canvas.height = image.naturalHeight || image.height;
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        const code = window.jsQR ? window.jsQR(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height) : null;
-        if (!code || !code.data) {
-          reject(new Error("No QR code was found in that image."));
-          return;
-        }
-        resolve(code.data.trim());
-      } catch (error) {
-        reject(error);
-      }
-    };
-    image.onerror = () => reject(new Error("The QR image could not be read."));
-    image.src = URL.createObjectURL(file);
-  });
-}
-
-function stopVideoStream(stream) {
-  if (!stream) return;
-  stream.getTracks().forEach((track) => track.stop());
-}
-
-function setupQrForm() {
-  const form = $("#qr-form");
-  const fileInput = $("#qr-file");
-  const cameraButton = $("#qr-camera-button");
-  const videoWrap = $("#qr-video-wrap");
-  const video = $("#qr-video");
-  const textInput = $("#qr-text");
-  const feedback = $("#check-feedback");
-  let cameraStream = null;
-  let scanTimer = null;
-
-  const stopCamera = () => {
-    if (scanTimer) clearInterval(scanTimer);
-    stopVideoStream(cameraStream);
-    cameraStream = null;
-    videoWrap.hidden = true;
-    if (video.srcObject) {
-      video.srcObject = null;
-    }
-  };
-
-  const decodeCameraFrame = async () => {
-    if (!video.videoWidth || !video.videoHeight || !window.jsQR) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const context = canvas.getContext("2d");
-    if (!context) return;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const result = window.jsQR(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
-    if (!result || !result.data) return;
-    textInput.value = result.data.trim();
-    stopCamera();
-    setFeedback(feedback, "QR code decoded successfully. Review the value before analyzing.", "success");
-  };
-
-  cameraButton.addEventListener("click", async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setFeedback(feedback, "Your browser does not support camera scanning. Please upload a QR image instead.", "error");
-      return;
-    }
-    try {
-      stopCamera();
-      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      video.srcObject = cameraStream;
-      await video.play();
-      videoWrap.hidden = false;
-      setFeedback(feedback, "Camera ready. Hold the QR code still to scan it.", "success");
-      scanTimer = setInterval(decodeCameraFrame, 600);
-    } catch {
-      setFeedback(feedback, "Camera access was denied. Please upload a QR image instead.", "error");
-      stopCamera();
-    }
-  });
-
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) return;
-    stopCamera();
-    try {
-      const decoded = await decodeQrFromImage(file);
-      textInput.value = decoded;
-      setFeedback(feedback, "QR code decoded successfully. Review the value before analyzing.", "success");
-    } catch (error) {
-      setFeedback(feedback, error.message || "No QR code was found in that image.", "error");
-    }
-  });
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const value = textInput.value.trim();
-    const result = $("#result");
-    const button = $("button[type=submit]", form);
-    result.hidden = true;
-    setFeedback(feedback, t("checking"), "");
-    button.disabled = true;
-    try {
-      if (!value) throw new Error("Paste or scan a QR code value before analyzing it.");
-      const payload = isLikelyUrl(value)
-        ? await request("/api/check/url", { method: "POST", body: JSON.stringify({ url: value, locale: currentLocale }) })
-        : await request("/api/check/message", { method: "POST", body: JSON.stringify({ text: value, locale: currentLocale }) });
-      feedback.hidden = true;
-      renderResult(payload);
-      saveCheckHistory(payload, isLikelyUrl(value) ? "url" : "message");
-    } catch (error) {
-      setFeedback(feedback, readableError(error), "error");
-    } finally {
-      button.disabled = false;
-    }
-  });
 }
 
 function setupCheckForm(formId, path, valueKey) {
@@ -1436,8 +1547,10 @@ function setupCheckForm(formId, path, valueKey) {
     const submit = $("button[type=submit]", form);
     submit.disabled = true;
     try {
-      const body = await request(path, { method: "POST", body: JSON.stringify({ [valueKey]: $(`[name="${valueKey}"]`, form).value, locale: currentLocale }) });
+      const input = $(`[name="${valueKey}"]`, form).value;
+      const body = await request(path, { method: "POST", body: JSON.stringify({ [valueKey]: input, locale: currentLocale }) });
       feedback.hidden = true;
+      lastCheckInput = { type: valueKey === "url" ? "url" : "message", value: input };
       renderResult(body);
       saveCheckHistory(body, valueKey);
     } catch (error) {
@@ -1457,10 +1570,14 @@ function setupReport() {
     button.disabled = true;
     setFeedback(feedback, t("sending"));
     const data = Object.fromEntries(new FormData(form));
+    data.locale = currentLocale;
     try {
       const result = await request("/api/reports", { method: "POST", body: JSON.stringify(data) });
       form.reset();
-      setFeedback(feedback, `${t("reportSuccess")} ${result.reference}`, "success");
+      const duplicateNote = result.possible_duplicate
+        ? " A similar report may already exist; reviewers will check before linking reports."
+        : "";
+      setFeedback(feedback, `${t("reportSuccess")} ${result.reference}${duplicateNote}`, "success");
     } catch (error) {
       setFeedback(feedback, readableError(error), "error");
     } finally {
@@ -1473,90 +1590,433 @@ function setupStatus() {
   $("#status-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const feedback = $("#status-feedback");
+    const reportActions = $("#report-actions");
+    const appealArea = $("#status-appeal");
+    reportActions.hidden = true;
+    reportActions.open = false;
+    appealArea.replaceChildren();
+    appealArea.hidden = true;
     setFeedback(feedback, t("statusLoading"));
     try {
+      const reference = $("#status-token").value.trim();
       const result = await request("/api/reports/status", {
         method: "POST",
-        body: JSON.stringify({ token: $("#status-token").value.trim(), locale: currentLocale }),
+        body: JSON.stringify({ token: reference, locale: currentLocale }),
       });
       const statusKeys = { pending: "statusPending", verified: "statusVerified", rejected: "statusRejected", escalated: "statusEscalated" };
       const statusName = t(statusKeys[result.status] || "statusPending");
       const date = new Intl.DateTimeFormat(localeSettings[currentLocale].date, { dateStyle: "medium", timeStyle: "short" }).format(new Date(result.updated_at));
       setFeedback(feedback, `${t("statusResult")} ${statusName}. ${t("lastUpdated")} ${date}.`, "success");
+      reportActions.hidden = false;
+      if (result.clarifications?.length) {
+        renderClarifications(appealArea, reference, result.clarifications);
+      }
+      if (result.appeal_status === "pending") {
+        const appealMessage = document.createElement("p");
+        appealMessage.className = "feedback";
+        appealMessage.textContent = t("appealPending");
+        appealArea.append(appealMessage);
+      } else if (["verified", "rejected", "escalated"].includes(result.status)) {
+        renderAppealForm(appealArea, reference);
+      }
     } catch (error) {
       setFeedback(feedback, readableError(error), "error");
     }
   });
-}
-
-function renderQueue(reports) {
-  const queue = $("#admin-queue");
-  queue.replaceChildren();
-  if (!reports.length) {
-    const empty = document.createElement("p");
-    empty.className = "feedback";
-    empty.textContent = t("queueEmpty");
-    queue.append(empty);
-    return;
-  }
-  for (const report of reports) {
-    const item = document.createElement("article");
-    item.className = "admin-item";
-    const title = document.createElement("h3");
-    const categoryKeys = { fake_shop: "categoryShop", job: "categoryJob", payment: "categoryPayment", impersonation: "categoryImpersonation", account: "categoryAccount", other: "categoryOther" };
-    const date = new Intl.DateTimeFormat(localeSettings[currentLocale].date, { dateStyle: "medium", timeStyle: "short" }).format(new Date(report.created_at));
-    title.textContent = `${t(categoryKeys[report.category] || "categoryOther")} · ${date}`;
-    const target = document.createElement("p");
-    target.textContent = `${t("target")} ${report.target}`;
-    const summary = document.createElement("p");
-    summary.textContent = report.summary;
-    const actions = document.createElement("div");
-    actions.className = "admin-actions";
-    for (const [status, labelKey] of [["verified", "statusVerified"], ["rejected", "statusRejected"], ["escalated", "statusEscalated"]]) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = t(labelKey);
-      button.addEventListener("click", () => reviewReport(report.id, status));
-      actions.append(button);
+  $("#report-delete").addEventListener("click", async () => {
+    const reference = $("#status-token").value.trim();
+    if (!reference) {
+      setFeedback($("#status-feedback"), "Enter your private report reference first.", "error");
+      return;
     }
-    item.append(title, target, summary, actions);
-    queue.append(item);
-  }
-}
-
-async function loadQueue(feedback) {
-  const result = await request("/api/admin/reports", { headers: { Authorization: `Bearer ${adminToken}` } });
-  renderQueue(result.reports);
-  setFeedback(feedback, `${result.reports.length} ${t("pendingCount")}`, "success");
-}
-
-async function reviewReport(id, status) {
-  const feedback = $("#admin-feedback");
-  try {
-    const statusKey = { verified: "statusVerified", rejected: "statusRejected", escalated: "statusEscalated" }[status];
-    const reason = window.prompt(`${t("promptReason")} ${t(statusKey)}:`);
-    if (!reason?.trim()) return;
-    await request(`/api/admin/reports/${id}`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${adminToken}` },
-      body: JSON.stringify({ status, reason: reason.trim() }),
-    });
-    await loadQueue(feedback);
-  } catch (error) {
-    setFeedback(feedback, readableError(error), "error");
-  }
-}
-
-function setupAdmin() {
-  $("#admin-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const feedback = $("#admin-feedback");
-    adminToken = $("#admin-token").value;
+    if (!window.confirm(t("deleteConfirm"))) return;
     try {
-      await loadQueue(feedback);
+      await request("/api/reports/delete", {
+        method: "POST",
+        body: JSON.stringify({ reference }),
+      });
+      $("#status-token").value = "";
+      $("#report-actions").hidden = true;
+      $("#report-actions").open = false;
+      $("#status-appeal").replaceChildren();
+      $("#status-appeal").hidden = true;
+      setFeedback($("#status-feedback"), t("reportDeleted"), "success");
     } catch (error) {
-      adminToken = "";
+      setFeedback($("#status-feedback"), readableError(error), "error");
+    }
+  });
+}
+
+function renderClarifications(container, reference, clarifications) {
+  container.hidden = false;
+  const heading = document.createElement("h3");
+  heading.textContent = "Private clarification requests";
+  container.append(heading);
+  for (const item of clarifications) {
+    const record = document.createElement("article");
+    record.className = "clarification-record";
+    const requestText = document.createElement("p");
+    requestText.textContent = `Reviewer request: ${item.request}`;
+    record.append(requestText);
+    if (item.reply) {
+      const replyText = document.createElement("p");
+      replyText.textContent = `Your reply: ${item.reply}`;
+      record.append(replyText);
+    } else if (item.status === "open") {
+      const form = document.createElement("form");
+      form.className = "appeal-form";
+      const label = document.createElement("label");
+      label.textContent = "Reply (do not include passwords, codes, or identity documents)";
+      const reply = document.createElement("textarea");
+      reply.rows = 3;
+      reply.maxLength = 2000;
+      reply.minLength = 8;
+      reply.required = true;
+      const submit = document.createElement("button");
+      submit.type = "submit";
+      submit.className = "secondary-button";
+      submit.textContent = "Send private reply";
+      const feedback = document.createElement("div");
+      feedback.className = "feedback";
+      feedback.hidden = true;
+      form.append(label, reply, submit, feedback);
+      label.append(reply);
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        submit.disabled = true;
+        try {
+          await request("/api/reports/clarifications/reply", {
+            method: "POST",
+            body: JSON.stringify({
+              reference,
+              clarification_id: item.id,
+              message: reply.value.trim(),
+            }),
+          });
+          setFeedback(feedback, "Your reply was sent privately to the review team.", "success");
+          reply.disabled = true;
+        } catch (error) {
+          setFeedback(feedback, readableError(error), "error");
+          submit.disabled = false;
+        }
+      });
+      record.append(form);
+    }
+    container.append(record);
+  }
+}
+
+function setupImageCheck() {
+  $("#image-check-input").addEventListener("change", async (event) => {
+    const file = event.currentTarget.files[0];
+    const feedback = $("#image-check-feedback");
+    if (!file) return;
+    event.currentTarget.value = "";
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setFeedback(feedback, "Choose a PNG, JPEG, or WebP image no larger than 5 MB.", "error");
+      return;
+    }
+    try {
+      const image = await createImageBitmap(file);
+      let text = "";
+      if ("BarcodeDetector" in window) {
+        const detector = new BarcodeDetector({ formats: ["qr_code"] });
+        const codes = await detector.detect(image);
+        text = codes.find((code) => code.rawValue)?.rawValue || "";
+      }
+      if (!text && "TextDetector" in window) {
+        const detector = new TextDetector();
+        const blocks = await detector.detect(image);
+        text = blocks.map((block) => block.rawValue).filter(Boolean).join("\n");
+      }
+      image.close();
+      if (!text) {
+        setFeedback(feedback, t("imageNoContent"), "error");
+        return;
+      }
+      if (/^(?:https?:\/\/|www\.)/i.test(text.trim())) {
+        const url = text.trim().replace(/^www\./i, "https://www.");
+        $("#url-input").value = url;
+        $("#url-tab").click();
+        setFeedback(feedback, t("imageFoundUrl"), "success");
+      } else if ($("#message-input")) {
+        $("#message-input").value = text.slice(0, 6000);
+        $("#message-tab").click();
+        setFeedback(feedback, t("imageFoundText"), "success");
+      } else {
+        setFeedback(feedback, t("imageNoSupport"), "error");
+      }
+    } catch {
+      setFeedback(feedback, t("imageNoSupport"), "error");
+    }
+  });
+}
+
+function appendLines(target, heading, lines) {
+  target.replaceChildren();
+  const title = document.createElement("strong");
+  title.textContent = heading;
+  const list = document.createElement("ul");
+  for (const line of lines) {
+    const item = document.createElement("li");
+    item.textContent = line;
+    list.append(item);
+  }
+  target.append(title, list);
+}
+
+async function fetchPrivateReport() {
+  const reference = $("#status-token").value.trim();
+  if (!reference) throw new Error("Enter your private report reference first.");
+  return request("/api/reports/export", {
+    method: "POST",
+    body: JSON.stringify({ reference }),
+  });
+}
+
+function csvValue(value) {
+  const text = String(value ?? "");
+  const safe = /^\s*[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${safe.replaceAll('"', '""')}"`;
+}
+
+function printableReport(data, targetWindow) {
+  const document = targetWindow.document;
+  document.title = "ClearBeacon private report";
+  const style = document.createElement("style");
+  style.textContent = "body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:40px auto;color:#172b2a}h1,h2{color:#145c54}dt{font-weight:700;margin-top:1em}dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.print-action{margin-bottom:2em}@media print{.print-action{display:none}body{margin:0}}";
+  document.head.append(style);
+  const heading = document.createElement("h1");
+  heading.textContent = "ClearBeacon private report";
+  document.body.append(heading);
+  const fields = [
+    ["Category", data.report.category],
+    ["Status", data.report.status],
+    ["Target", data.report.target],
+    ["Summary", data.report.summary],
+    ["Evidence notes", data.report.evidence_notes || "None"],
+    ["Contact channel", data.report.contact_channel],
+    ["Incident date", data.report.incident_date || "Not provided"],
+    ["Created", data.report.created_at],
+    ["Updated", data.report.updated_at],
+  ];
+  const details = document.createElement("dl");
+  for (const [label, value] of fields) {
+    const term = document.createElement("dt");
+    term.textContent = label;
+    const description = document.createElement("dd");
+    description.textContent = value;
+    details.append(term, description);
+  }
+  document.body.append(details);
+  if (data.appeals.length) {
+    const appealHeading = document.createElement("h2");
+    appealHeading.textContent = "Appeals";
+    document.body.append(appealHeading);
+    for (const appeal of data.appeals) {
+      const entry = document.createElement("p");
+      entry.textContent = `${appeal.status} · ${appeal.created_at}: ${appeal.details}`;
+      document.body.append(entry);
+    }
+  }
+  const print = document.createElement("button");
+  print.className = "print-action";
+  print.textContent = "Print or save as PDF";
+  print.addEventListener("click", () => targetWindow.print());
+  document.body.prepend(print);
+}
+
+function setupAdditionalTools() {
+  $("#email-header-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const result = $("#email-header-result");
+    try {
+      const data = await request("/api/check/email-headers", {
+        method: "POST",
+        body: JSON.stringify({ headers: $("#email-headers").value }),
+      });
+      appendLines(result, `Header review: ${data.risk_label}`, [
+        ...data.findings,
+        data.disclaimer,
+      ]);
+    } catch (error) {
+      result.textContent = readableError(error);
+    }
+  });
+  $("#context-check-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const result = $("#context-check-result");
+    try {
+      const data = await request("/api/check/context", {
+        method: "POST",
+        body: JSON.stringify({ kind: $("#context-kind").value, text: $("#context-text").value }),
+      });
+      appendLines(result, `Local review: ${data.risk_label}`, [...data.findings, data.disclaimer]);
+    } catch (error) {
+      result.textContent = readableError(error);
+    }
+  });
+  $("#organization-check-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const result = $("#organization-check-result");
+    try {
+      const data = await request("/api/check/organization", {
+        method: "POST",
+        body: JSON.stringify({ domain: $("#organization-domain").value }),
+      });
+      appendLines(result, data.message, data.matches.length
+        ? data.matches.map((organization) => `${organization.name}: ${organization.url} (checked ${organization.verified_on})`)
+        : ["No directory match. This does not establish whether a site is safe."]);
+    } catch (error) {
+      result.textContent = readableError(error);
+    }
+  });
+  $("#checklist-print").addEventListener("click", async () => {
+    const scenario = $("#checklist-scenario").value;
+    const output = $("#safety-checklist-output");
+    try {
+      const { items } = await request("/api/check/checklist", {
+        method: "POST",
+        body: JSON.stringify({ scenario }),
+      });
+      output.replaceChildren();
+      for (const text of items) {
+        const item = document.createElement("li");
+        item.textContent = text;
+        output.append(item);
+      }
+      output.dataset.prepared = "true";
+      window.print();
+    } catch (error) {
+      output.textContent = readableError(error);
+    }
+  });
+  $("#report-export").addEventListener("click", async () => {
+    try {
+      const data = await fetchPrivateReport();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "clearbeacon-report.json";
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setFeedback($("#status-feedback"), "Your report was downloaded to this device.", "success");
+    } catch (error) {
+      setFeedback($("#status-feedback"), readableError(error), "error");
+    }
+  });
+  $("#report-csv").addEventListener("click", async () => {
+    try {
+      const data = await fetchPrivateReport();
+      const rows = [
+        ["Field", "Value"],
+        ...Object.entries(data.report),
+        ...data.appeals.flatMap((appeal, index) => [
+          [`Appeal ${index + 1} status`, appeal.status],
+          [`Appeal ${index + 1} details`, appeal.details],
+          [`Appeal ${index + 1} created`, appeal.created_at],
+        ]),
+      ];
+      const content = `\uFEFF${rows.map((row) => row.map(csvValue).join(",")).join("\r\n")}`;
+      const url = URL.createObjectURL(new Blob([content], { type: "text/csv;charset=utf-8" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "clearbeacon-private-report.csv";
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setFeedback($("#status-feedback"), "Your private report CSV was downloaded to this device.", "success");
+    } catch (error) {
+      setFeedback($("#status-feedback"), readableError(error), "error");
+    }
+  });
+  $("#report-print").addEventListener("click", async () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      setFeedback($("#status-feedback"), "Allow the print window to open, then try again.", "error");
+      return;
+    }
+    try {
+      const data = await fetchPrivateReport();
+      printableReport(data, printWindow);
+      printWindow.focus();
+      printWindow.print();
+    } catch (error) {
+      printWindow.close();
+      setFeedback($("#status-feedback"), readableError(error), "error");
+    }
+  });
+  request("/api/public/trends").then((data) => {
+    const list = $("#public-trends-list");
+    if (!data.verified_reports_by_category.length) {
+      list.textContent = "There are not enough verified reports to display privacy-preserving category counts yet.";
+      return;
+    }
+    const items = document.createElement("ul");
+    for (const trend of data.verified_reports_by_category) {
+      const item = document.createElement("li");
+      item.textContent = `${trend.category.replaceAll("_", " ")}: ${trend.count} verified reports`;
+      items.append(item);
+    }
+    list.replaceChildren(items);
+  }).catch(() => {
+    $("#public-trends-list").textContent = "Aggregate trends are temporarily unavailable.";
+  });
+  request("/api/public/organizations").then((data) => {
+    const list = $("#organization-directory-list");
+    list.replaceChildren();
+    for (const organization of data.organizations) {
+      const item = document.createElement("p");
+      const link = document.createElement("a");
+      link.href = organization.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = `${organization.name} (${organization.country})`;
+      item.append(link, document.createTextNode(` · ${organization.domain} · listed ${organization.catalogued_on} · ${organization.source}`));
+      list.append(item);
+    }
+  }).catch(() => {
+    $("#organization-directory-list").textContent = "The directory is temporarily unavailable.";
+  });
+}
+
+function renderAppealForm(container, reference) {
+  container.hidden = false;
+  const intro = document.createElement("p");
+  intro.textContent = t("appealPrompt");
+  const form = document.createElement("form");
+  form.className = "appeal-form";
+  const label = document.createElement("label");
+  const detailsId = "appeal-details";
+  label.htmlFor = detailsId;
+  label.textContent = t("appealLabel");
+  const details = document.createElement("textarea");
+  details.id = detailsId;
+  details.rows = 3;
+  details.maxLength = 1000;
+  details.required = true;
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.className = "secondary-button";
+  submit.textContent = t("appealSubmit");
+  const feedback = document.createElement("div");
+  feedback.className = "feedback";
+  feedback.hidden = true;
+  feedback.setAttribute("role", "status");
+  form.append(label, details, submit, feedback);
+  container.append(intro, form);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    try {
+      await request("/api/reports/appeals", {
+        method: "POST",
+        body: JSON.stringify({ reference, details: details.value.trim() }),
+      });
+      setFeedback(feedback, t("appealSuccess"), "success");
+      details.disabled = true;
+    } catch (error) {
       setFeedback(feedback, readableError(error), "error");
+      submit.disabled = false;
     }
   });
 }
@@ -1568,46 +2028,7 @@ setupSafetyCenter();
 setupTabs();
 setupCheckForm("#url-form", "/api/check/url", "url");
 setupCheckForm("#message-form", "/api/check/message", "text");
-setupScreenshotForm();
-setupQrForm();
 setupReport();
 setupStatus();
-
-function setupMainNavigation() {
-  const links = $$(".main-nav a");
-  if (!links.length) return;
-
-  const updateCurrentLink = () => {
-    const activeHash = window.location.hash || links[0].getAttribute("href");
-    for (const link of links) {
-      if (link.getAttribute("href") === activeHash) {
-        link.setAttribute("aria-current", "location");
-      } else {
-        link.removeAttribute("aria-current");
-      }
-    }
-  };
-
-  updateCurrentLink();
-  window.addEventListener("hashchange", updateCurrentLink);
-}
-
-setupMainNavigation();
-
-(() => {
-  const animatedElements = [...document.querySelectorAll(".hero .appear")];
-  if (!animatedElements.length) return;
-
-  for (const element of animatedElements) {
-    element.addEventListener("animationend", () => element.classList.add("is-in"), { once: true });
-  }
-
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    for (const element of animatedElements) {
-      const hasRunningAnimation = element.getAnimations().some(
-        (animation) => animation.playState === "running",
-      );
-      if (!hasRunningAnimation) element.classList.add("is-in");
-    }
-  }));
-})();
+setupImageCheck();
+setupAdditionalTools();

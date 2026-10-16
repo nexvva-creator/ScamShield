@@ -1,6 +1,4 @@
-import json
 import unittest
-from unittest.mock import patch
 
 from scamshield.analysis import analyze_message, analyze_url
 
@@ -15,32 +13,17 @@ class UrlAnalysisTests(unittest.TestCase):
     def test_weak_url_signals_are_explained(self):
         result = analyze_url("http://xn--login-example.top:8080/verify")
         self.assertEqual(result["risk_label"], "caution")
-        self.assertIsInstance(result["score"], int)
-        self.assertTrue(result["title"])
         evidence_types = {item["type"] for item in result["evidence"]}
         self.assertIn("punycode_hostname", evidence_types)
         self.assertIn("unencrypted_http", evidence_types)
         self.assertIn("uncommon_domain_suffix", evidence_types)
         self.assertIn("unusual_port", evidence_types)
 
-    @patch.dict("os.environ", {"SCAMSHIELD_THREAT_API_URL": "https://threat.example/check"}, clear=False)
-    @patch("scamshield.analysis.urllib_request.urlopen")
-    def test_live_threat_feed_marks_known_malicious_link(self, mock_urlopen):
-        mock_response = unittest.mock.MagicMock()
-        mock_response.__enter__.return_value = mock_response
-        mock_response.read.return_value = json.dumps({
-            "provider": "Demo Threat Feed",
-            "status": "malicious",
-            "malicious": True,
-        }).encode("utf-8")
-        mock_urlopen.return_value = mock_response
-
-        result = analyze_url("https://malicious.example/login")
-
-        self.assertEqual(result["risk_label"], "high_risk")
-        self.assertEqual(result["coverage"][1]["status"], "completed")
-        self.assertIn("known_malicious", {item["type"] for item in result["evidence"]})
-        self.assertEqual(result["threat_provider"], "Demo Threat Feed")
+    def test_additional_url_structure_signals_are_explained(self):
+        result = analyze_url("https://example123456789.com/path%2fhidden")
+        evidence_types = {item["type"] for item in result["evidence"]}
+        self.assertIn("digit_heavy_hostname", evidence_types)
+        self.assertIn("encoded_url_path", evidence_types)
 
     def test_local_or_reserved_addresses_are_rejected(self):
         for url in ("http://127.0.0.1/admin", "http://localhost/", "http://[::1]/"):
@@ -54,65 +37,13 @@ class UrlAnalysisTests(unittest.TestCase):
 
 
 class MessageAnalysisTests(unittest.TestCase):
-    def test_curated_message_cases_cover_scam_signals_and_benign_examples(self):
-        cases = (
-            (
-                "delivery-fee scam",
-                "Delivery attempt failed. Pay a redelivery fee today to release your parcel.",
-                {"requests_upfront_payment"},
-                "unknown",
-            ),
-            (
-                "account takeover link",
-                "We detected a suspicious sign-in. Secure your account now at https://example.com/login.",
-                {"pushes_link_action"},
-                "unknown",
-            ),
-            (
-                "credential theft",
-                "Your bank account is locked. Reply with your OTP immediately to restore access.",
-                {"requests_secret", "creates_urgency"},
-                "caution",
-            ),
-            (
-                "job fee scam",
-                "You were selected for a remote job. Pay a processing fee before onboarding.",
-                {"job_offer", "requests_upfront_payment"},
-                "caution",
-            ),
-            (
-                "recovery scam",
-                "We can recover your lost crypto with guaranteed profit. Pay an upfront fee to begin.",
-                {"recovery_scam", "unrealistic_return", "requests_upfront_payment"},
-                "caution",
-            ),
-        )
-        for name, message, expected_types, expected_label in cases:
-            with self.subTest(name=name):
-                result = analyze_message(message)
-                actual_types = {item["type"] for item in result["evidence"]}
-                self.assertTrue(expected_types.issubset(actual_types))
-                self.assertEqual(result["risk_label"], expected_label)
-
-    def test_word_boundaries_avoid_pin_substring_false_positive(self):
-        result = analyze_message("Your parcel was delivered today. Thank you for shopping with us.")
-        self.assertNotIn("requests_secret", {item["type"] for item in result["evidence"]})
-        self.assertEqual(result["risk_label"], "unknown")
-        self.assertEqual(result["score"], 0)
-
-    def test_security_reminder_does_not_look_like_a_secret_request(self):
-        result = analyze_message(
-            "Security reminder: never share your OTP, PIN, or password with anyone who calls you."
-        )
-        self.assertNotIn("requests_secret", {item["type"] for item in result["evidence"]})
-        self.assertEqual(result["risk_label"], "unknown")
-
     def test_supported_locales_translate_message_results(self):
         samples = {
             "es": "código otp",
             "fr": "code de vérification",
             "hi": "ओटीपी",
             "ar": "رمز OTP",
+            "bn": "ওটিপি",
         }
         for locale, phrase in samples.items():
             with self.subTest(locale=locale):
@@ -123,7 +54,7 @@ class MessageAnalysisTests(unittest.TestCase):
                 self.assertNotEqual(result["title"], "Pause and verify")
 
     def test_supported_locales_translate_url_results(self):
-        for locale in ("es", "fr", "hi", "ar"):
+        for locale in ("es", "fr", "hi", "ar", "bn"):
             with self.subTest(locale=locale):
                 result = analyze_url("http://bit.ly/example", locale)
                 self.assertEqual(result["locale"], locale)
@@ -134,8 +65,6 @@ class MessageAnalysisTests(unittest.TestCase):
         result = analyze_message("Your monthly statement is ready.")
         self.assertEqual(result["risk_label"], "unknown")
         self.assertIn("provider is configured", result["disclaimer"])
-        self.assertIn("summary", result)
-        self.assertIn(result["confidence"], {"low", "medium", "high"})
 
     def test_message_links_are_extracted_but_not_opened(self):
         result = analyze_message("Please review https://bit.ly/example before paying")

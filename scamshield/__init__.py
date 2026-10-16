@@ -1,1 +1,1 @@
-"""ScamShield application package."""
+"""ClearBeacon application package."""
